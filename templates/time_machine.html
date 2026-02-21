@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Time Machine - ATIS</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;500;600&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-content">
+            <div class="logo">🛰️ ATIS</div>
+            <ul class="nav-links">
+                <li><a href="/">Home</a></li>
+                <li><a href="/galaxy">Galaxy</a></li>
+                <li><a href="/radar">Radar</a></li>
+                <li><a href="/watchlist">Watchlist</a></li>
+                <li><a href="/trajectory">Trajectory</a></li>
+                <li><a href="/orbital-simulator">Orbits</a></li>
+                <li><a href="/time-machine" class="active">Time Machine</a></li>
+                <li><a href="/analytics">Analytics</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Full-screen 3D Canvas -->
+    <canvas id="scene" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1;"></canvas>
+
+    <!-- Time Control Panel -->
+    <div class="panel panel-top-left" style="z-index: 100; min-width: 400px;">
+        <h3 style="margin-bottom: 16px;">⏰ Time Machine</h3>
+        
+        <div style="margin-bottom: 20px; padding: 12px; background: rgba(0,191,255,0.05); border-left: 2px solid var(--electric-blue); border-radius: 4px;">
+            <div style="font-size: 0.875rem; color: rgba(255,255,255,0.7); margin-bottom: 8px;">Current Simulation Time</div>
+            <div id="currentDate" style="font-size: 1.25rem; font-weight: 600; font-family: var(--font-mono);"></div>
+            <div id="timeOffset" style="font-size: 0.75rem; color: var(--electric-blue); margin-top: 4px;"></div>
+        </div>
+
+        <div style="margin-bottom: 20px;">
+            <label style="display: block; margin-bottom: 8px; font-size: 0.875rem; color: rgba(255,255,255,0.8);">
+                Time Offset (days)
+            </label>
+            <input 
+                type="range" 
+                id="timeSlider" 
+                min="-3650" 
+                max="3650" 
+                value="0" 
+                step="1"
+                style="width: 100%; margin-bottom: 8px;"
+                oninput="updateTimeOffset(this.value)"
+            >
+            <div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: rgba(255,255,255,0.5);">
+                <span>-10 years</span>
+                <span>Now</span>
+                <span>+10 years</span>
+            </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 16px;">
+            <button class="btn btn-secondary" onclick="jumpTime(-365)">-1 Year</button>
+            <button class="btn btn-secondary" onclick="jumpTime(365)">+1 Year</button>
+            <button class="btn btn-secondary" onclick="jumpTime(-30)">-30 Days</button>
+            <button class="btn btn-secondary" onclick="jumpTime(30)">+30 Days</button>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+            <button class="btn btn-primary" onclick="resetTime()">Reset to Now</button>
+            <button class="btn btn-primary" id="playButton" onclick="togglePlayback()">▶ Play</button>
+        </div>
+
+        <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border-gray);">
+            <label style="display: block; margin-bottom: 8px; font-size: 0.875rem; color: rgba(255,255,255,0.8);">
+                Playback Speed
+            </label>
+            <select id="speedSelect" style="width: 100%; padding: 8px; background: rgba(0,191,255,0.05); border: 1px solid var(--border-gray); border-radius: 4px; color: white; font-family: var(--font-mono); font-size: 0.875rem;">
+                <option value="1">1 day/sec</option>
+                <option value="7">7 days/sec</option>
+                <option value="30" selected>30 days/sec</option>
+                <option value="90">90 days/sec</option>
+                <option value="365">1 year/sec</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- Statistics Panel -->
+    <div class="panel panel-top-right" style="z-index: 100;">
+        <h3 style="margin-bottom: 16px;">📊 System Snapshot</h3>
+        <div id="statsPanel">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 0.875rem;">
+                <div style="padding: 12px; background: rgba(0,191,255,0.05); border-radius: 4px;">
+                    <div style="color: rgba(255,255,255,0.6); font-size: 0.75rem; margin-bottom: 4px;">Asteroids Loaded</div>
+                    <div id="asteroidCount" style="font-size: 1.5rem; font-weight: 600; color: var(--electric-blue);">0</div>
+                </div>
+                <div style="padding: 12px; background: rgba(0,191,255,0.05); border-radius: 4px;">
+                    <div style="color: rgba(255,255,255,0.6); font-size: 0.75rem; margin-bottom: 4px;">Within 1 AU</div>
+                    <div id="closeCount" style="font-size: 1.5rem; font-weight: 600; color: var(--warning);">0</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Legend -->
+    <div class="panel panel-bottom-left" style="z-index: 100;">
+        <h4 style="margin-bottom: 12px;">Legend</h4>
+        <div style="display: flex; flex-direction: column; gap: 8px; font-size: 0.875rem;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <div style="width: 12px; height: 12px; border-radius: 50%; background: #ffd700;"></div>
+                <span>Sun</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <div style="width: 12px; height: 12px; border-radius: 50%; background: #2233ff;"></div>
+                <span>Earth (moving)</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <div style="width: 12px; height: 2px; background: #00bfff;"></div>
+                <span>Earth Orbit</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <div style="width: 12px; height: 12px; border-radius: 50%; background: linear-gradient(90deg, #00ff7f, #ff0000);"></div>
+                <span>Asteroids (threat-colored)</span>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/time_machine.js"></script>
+</body>
+</html>

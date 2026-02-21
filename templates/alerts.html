@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real-Time Alerts - ATIS</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;500;600&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        .alert-item {
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            border-left: 4px solid;
+            background: rgba(255,255,255,0.02);
+            transition: all 0.3s ease;
+        }
+        
+        .alert-item:hover {
+            background: rgba(255,255,255,0.05);
+            transform: translateX(4px);
+        }
+        
+        .alert-item.critical {
+            border-left-color: #ff3333;
+            background: rgba(255,51,51,0.05);
+        }
+        
+        .alert-item.high {
+            border-left-color: #ffa500;
+            background: rgba(255,165,0,0.05);
+        }
+        
+        .alert-item.warning {
+            border-left-color: #ffeb3b;
+            background: rgba(255,235,59,0.05);
+        }
+        
+        .alert-item.info {
+            border-left-color: var(--electric-blue);
+            background: rgba(0,191,255,0.05);
+        }
+        
+        .alert-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        
+        .alert-title {
+            font-family: var(--font-orbitron);
+            font-weight: 600;
+            font-size: 0.875rem;
+        }
+        
+        .alert-time {
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            color: rgba(255,255,255,0.5);
+        }
+        
+        .alert-message {
+            font-size: 0.875rem;
+            line-height: 1.6;
+            margin-bottom: 8px;
+        }
+        
+        .alert-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+        }
+        
+        .alert-action-btn {
+            padding: 6px 12px;
+            font-size: 0.75rem;
+            text-decoration: none;
+            border-radius: 4px;
+            border: 1px solid var(--border-gray);
+            background: rgba(0,191,255,0.1);
+            color: var(--electric-blue);
+            transition: all 0.2s;
+        }
+        
+        .alert-action-btn:hover {
+            background: rgba(0,191,255,0.2);
+            border-color: var(--electric-blue);
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 32px;
+        }
+        
+        .stat-card {
+            padding: 20px;
+            background: rgba(0,191,255,0.05);
+            border: 1px solid var(--border-gray);
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 2.5rem;
+            font-family: var(--font-orbitron);
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+        
+        .stat-label {
+            font-size: 0.875rem;
+            color: rgba(255,255,255,0.7);
+        }
+        
+        .filter-tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+        }
+        
+        .filter-tab {
+            padding: 8px 16px;
+            background: rgba(0,191,255,0.1);
+            border: 1px solid var(--border-gray);
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.875rem;
+            transition: all 0.2s;
+        }
+        
+        .filter-tab.active {
+            background: var(--electric-blue);
+            color: #000;
+            font-weight: 600;
+        }
+        
+        .filter-tab:hover {
+            border-color: var(--electric-blue);
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 60px;
+            color: rgba(255,255,255,0.5);
+        }
+        
+        .empty-state-icon {
+            font-size: 4rem;
+            margin-bottom: 16px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-content">
+            <div class="logo">🛰️ ATIS</div>
+            <ul class="nav-links">
+                <li><a href="/">Home</a></li>
+                <li><a href="/galaxy">Galaxy</a></li>
+                <li><a href="/radar">Radar</a></li>
+                <li><a href="/watchlist">Watchlist</a></li>
+                <li><a href="/alerts" class="active">Alerts</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container" style="margin-top: 100px; max-width: 1200px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px;">
+            <div>
+                <h1>Real-Time Alerts</h1>
+                <p style="font-size: 1.125rem; color: rgba(255,255,255,0.8);">
+                    Live threat notifications and system alerts
+                </p>
+            </div>
+            <div class="ws-status-indicator" data-status="disconnected">
+                <div class="status-dot"></div>
+                <span id="connectionStatus">Connecting...</span>
+            </div>
+        </div>
+
+        <!-- Statistics -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value" id="totalAlerts" style="color: var(--electric-blue);">0</div>
+                <div class="stat-label">Total Alerts</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="criticalAlerts" style="color: #ff3333;">0</div>
+                <div class="stat-label">Critical</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="highAlerts" style="color: #ffa500;">0</div>
+                <div class="stat-label">High Priority</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="infoAlerts" style="color: #00ff7f;">0</div>
+                <div class="stat-label">Informational</div>
+            </div>
+        </div>
+
+        <!-- Filter Tabs -->
+        <div class="filter-tabs">
+            <button class="filter-tab active" onclick="filterAlerts('all')">All Alerts</button>
+            <button class="filter-tab" onclick="filterAlerts('critical')">Critical</button>
+            <button class="filter-tab" onclick="filterAlerts('high')">High</button>
+            <button class="filter-tab" onclick="filterAlerts('warning')">Warnings</button>
+            <button class="filter-tab" onclick="filterAlerts('info')">Info</button>
+            <button class="btn btn-secondary" onclick="clearAllAlerts()" style="margin-left: auto;">
+                🗑️ Clear All
+            </button>
+            <button class="btn btn-primary" onclick="sendTestAlert()">
+                🧪 Test Alert
+            </button>
+        </div>
+
+        <!-- Alerts List -->
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Alert Feed</h3>
+                <span id="alertCount" class="badge badge-low">0 alerts</span>
+            </div>
+            <div class="card-body">
+                <div id="alertsList">
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📭</div>
+                        <div>No alerts yet. Real-time notifications will appear here.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- WebSocket Client -->
+    <script src="/static/js/websocket_client.js"></script>
+    
+    <script>
+        let allAlerts = [];
+        let currentFilter = 'all';
+
+        // Load initial alert history
+        async function loadAlertHistory() {
+            try {
+                const response = await fetch('/api/alerts/history?limit=100');
+                const data = await response.json();
+                
+                if (data.alerts && data.alerts.length > 0) {
+                    allAlerts = data.alerts.reverse(); // Show newest first
+                    renderAlerts();
+                }
+                
+                // Load statistics
+                const statsResponse = await fetch('/api/alerts/stats');
+                const stats = await statsResponse.json();
+                updateStatistics(stats);
+            } catch (error) {
+                console.error('Error loading alert history:', error);
+            }
+        }
+
+        // Render alerts based on current filter
+        function renderAlerts() {
+            const alertsList = document.getElementById('alertsList');
+            
+            let filteredAlerts = allAlerts;
+            if (currentFilter !== 'all') {
+                filteredAlerts = allAlerts.filter(alert => alert.level === currentFilter);
+            }
+            
+            if (filteredAlerts.length === 0) {
+                alertsList.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📭</div>
+                        <div>No ${currentFilter === 'all' ? '' : currentFilter} alerts found.</div>
+                    </div>
+                `;
+                document.getElementById('alertCount').textContent = '0 alerts';
+                return;
+            }
+            
+            alertsList.innerHTML = filteredAlerts.map(alert => `
+                <div class="alert-item ${alert.level}" data-level="${alert.level}">
+                    <div class="alert-header">
+                        <span class="alert-title">
+                            ${getLevelIcon(alert.level)} ${alert.type || 'Alert'}
+                        </span>
+                        <span class="alert-time">${formatTime(alert.timestamp)}</span>
+                    </div>
+                    <div class="alert-message">${alert.message}</div>
+                    ${alert.spkid ? `
+                        <div style="font-family: var(--font-mono); font-size: 0.75rem; color: rgba(255,255,255,0.5);">
+                            Object: ${alert.name || alert.spkid} | Threat: ${(alert.threat_score * 100).toFixed(1)}%
+                        </div>
+                    ` : ''}
+                    ${alert.actions && alert.actions.length > 0 ? `
+                        <div class="alert-actions">
+                            ${alert.actions.map(action => `
+                                <a href="${action.url}" target="_blank" class="alert-action-btn">
+                                    ${action.label}
+                                </a>
+                            `).join('')}
+                        </div>
+                    ` : ''}
+                </div>
+            `).join('');
+            
+            document.getElementById('alertCount').textContent = `${filteredAlerts.length} alert${filteredAlerts.length !== 1 ? 's' : ''}`;
+        }
+
+        // Update statistics display
+        function updateStatistics(stats) {
+            document.getElementById('totalAlerts').textContent = stats.total || 0;
+            document.getElementById('criticalAlerts').textContent = stats.critical || 0;
+            document.getElementById('highAlerts').textContent = stats.high || 0;
+            document.getElementById('infoAlerts').textContent = stats.info || 0;
+        }
+
+        // Filter alerts by level
+        function filterAlerts(level) {
+            currentFilter = level;
+            
+            // Update active tab
+            document.querySelectorAll('.filter-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            renderAlerts();
+        }
+
+        // Format timestamp
+        function formatTime(timestamp) {
+            const date = new Date(timestamp);
+            const now = new Date();
+            const diff = now - date;
+            
+            if (diff < 60000) return 'Just now';
+            if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
+            if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
+            
+            return date.toLocaleString();
+        }
+
+        // Get icon for alert level
+        function getLevelIcon(level) {
+            const icons = {
+                'critical': '🚨',
+                'high': '⚠️',
+                'warning': '⚡',
+                'medium': '📊',
+                'info': 'ℹ️',
+                'system': '⚙️'
+            };
+            return icons[level] || '📢';
+        }
+
+        // Clear all alerts
+        function clearAllAlerts() {
+            if (confirm('Clear all alerts from the feed?')) {
+                allAlerts = [];
+                renderAlerts();
+                updateStatistics({total: 0, critical: 0, high: 0, medium: 0, info: 0});
+            }
+        }
+
+        // Send test alert
+        async function sendTestAlert() {
+            try {
+                const response = await fetch('/api/alerts/test?level=info&message=This is a test alert from the ATIS system', {
+                    method: 'POST'
+                });
+                
+                if (response.ok) {
+                    console.log('Test alert sent');
+                }
+            } catch (error) {
+                console.error('Error sending test alert:', error);
+            }
+        }
+
+        // WebSocket event handlers
+        window.addEventListener('ws_connected', () => {
+            console.log('[Alerts] WebSocket connected, subscribing to alerts...');
+            wsClient.subscribe('alerts');
+            wsClient.subscribe('system_status');
+            document.getElementById('connectionStatus').textContent = 'Connected';
+        });
+
+        window.addEventListener('ws_disconnected', () => {
+            document.getElementById('connectionStatus').textContent = 'Reconnecting...';
+        });
+
+        window.addEventListener('ws_alert', (event) => {
+            console.log('[Alerts] Received new alert:', event.detail);
+            
+            // Add to beginning of alerts array
+            allAlerts.unshift(event.detail);
+            
+            // Keep only recent 100 alerts
+            if (allAlerts.length > 100) {
+                allAlerts = allAlerts.slice(0, 100);
+            }
+            
+            // Re-render
+            renderAlerts();
+            
+            // Update statistics
+            const stats = calculateStats(allAlerts);
+            updateStatistics(stats);
+            
+            // Flash animation for new alert
+            setTimeout(() => {
+                const firstAlert = document.querySelector('.alert-item');
+                if (firstAlert) {
+                    firstAlert.style.animation = 'slideIn 0.3s ease';
+                }
+            }, 50);
+        });
+
+        // Calculate statistics from alerts array
+        function calculateStats(alerts) {
+            const stats = {total: alerts.length, critical: 0, high: 0, medium: 0, info: 0};
+            alerts.forEach(alert => {
+                if (alert.level in stats) {
+                    stats[alert.level]++;
+                }
+            });
+            return stats;
+        }
+
+        // Initial load
+        loadAlertHistory();
+    </script>
+</body>
+</html>

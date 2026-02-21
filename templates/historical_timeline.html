@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Historical Timeline - ATIS</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <script src="https://cdn.plot.ly/plotly-2.26.0.min.js"></script>
+</head>
+<body>
+    <nav class="navbar">
+        <a href="/" class="nav-logo">ATIS</a>
+        <div class="nav-links">
+            <a href="/">Home</a>
+            <a href="/galaxy">Galaxy</a>
+            <a href="/radar">Radar</a>
+            <a href="/watchlist">Watchlist</a>
+            <a href="/historical-timeline" class="active">Timeline</a>
+        </div>
+    </nav>
+
+    <div class="container" style="padding-top: 80px;">
+        <div class="page-header">
+            <h1>Historical Close Approach Timeline</h1>
+            <p>Comprehensive timeline of asteroid close approaches to Earth - past and future</p>
+        </div>
+
+        <!-- Search Section -->
+        <div class="search-section" style="max-width: 600px; margin: 0 auto 40px;">
+            <div class="form-group">
+                <label for="asteroidSearch">Select Asteroid</label>
+                <input type="text" id="asteroidSearch" placeholder="Search by name or ID..." class="search-input">
+                <div id="searchResults" class="search-results"></div>
+            </div>
+            
+            <button id="loadTimelineBtn" class="btn btn-primary" disabled>Load Timeline</button>
+        </div>
+
+        <!-- Timeline Visualization -->
+        <div id="timelineResults" style="display: none;">
+            <!-- Statistics Cards -->
+            <div class="analytics-grid" style="margin-bottom: 40px;">
+                <div class="stat-card">
+                    <div class="stat-icon">📅</div>
+                    <div class="stat-value" id="totalApproaches">-</div>
+                    <div class="stat-label">Total Approaches</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">⏪</div>
+                    <div class="stat-value" id="historicalCount">-</div>
+                    <div class="stat-label">Historical Record</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">⏩</div>
+                    <div class="stat-value" id="futureCount">-</div>
+                    <div class="stat-label">Future Predictions</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">🎯</div>
+                    <div class="stat-value" id="closestDistance">-</div>
+                    <div class="stat-label">Closest Ever (LD)</div>
+                </div>
+            </div>
+
+            <!-- Main Timeline Chart -->
+            <div class="chart-panel">
+                <h2>Distance Timeline</h2>
+                <div id="timelineChart"></div>
+            </div>
+
+            <!-- Detailed Timeline Table -->
+            <div class="comparison-section" style="margin-top: 40px;">
+                <h2>Detailed Close Approaches</h2>
+                <div class="comparison-table-container">
+                    <table class="comparison-table" id="approachesTable">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Year</th>
+                                <th>Distance (AU)</th>
+                                <th>Distance (LD)</th>
+                                <th>Velocity (km/s)</th>
+                                <th>Risk Level</th>
+                                <th>Type</th>
+                            </tr>
+                        </thead>
+                        <tbody id="approachesTableBody">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Comparison Charts -->
+            <div class="charts-container" style="margin-top: 40px;">
+                <div class="chart-panel">
+                    <h2>Approaches by Decade</h2>
+                    <div id="decadeChart"></div>
+                </div>
+
+                <div class="chart-panel">
+                    <h2>Risk Distribution</h2>
+                    <div id="riskChart"></div>
+                </div>
+            </div>
+
+            <!-- Multi-Source Data Section -->
+            <div class="comparison-section" style="margin-top: 40px;">
+                <h2>Multi-Source Data Integration</h2>
+                <div id="multiSourceData" class="info-box">
+                    <p style="text-align: center; opacity: 0.7;">Loading data from multiple sources...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/historical_timeline.js"></script>
+</body>
+</html>

@@ -116,6 +116,41 @@
                     <p style="font-size: 0.875rem; color: rgba(255,255,255,0.7);">AI-powered orbital path detection and close approach forecasting</p>
                 </div>
             </a>
+            
+            <a href="/ml-dashboard" style="text-decoration: none;">
+                <div class="card" style="cursor: pointer;">
+                    <h3 style="margin-bottom: 16px;">🤖 ML Dashboard</h3>
+                    <p style="font-size: 0.875rem; color: rgba(255,255,255,0.7);">Model performance metrics, explainability, and anomaly detection</p>
+                </div>
+            </a>
+            
+            <a href="/multi-view" style="text-decoration: none;">
+                <div class="card" style="cursor: pointer;">
+                    <h3 style="margin-bottom: 16px;">📊 Multi-View</h3>
+                    <p style="font-size: 0.875rem; color: rgba(255,255,255,0.7);">Synchronized multi-panel visualization dashboard</p>
+                </div>
+            </a>
+            
+            <a href="/analytics" style="text-decoration: none;">
+                <div class="card" style="cursor: pointer;">
+                    <h3 style="margin-bottom: 16px;">📈 Analytics</h3>
+                    <p style="font-size: 0.875rem; color: rgba(255,255,255,0.7);">Comprehensive statistical analysis and orbital mechanics</p>
+                </div>
+            </a>
+            
+            <a href="/historical-timeline" style="text-decoration: none;">
+                <div class="card" style="cursor: pointer;">
+                    <h3 style="margin-bottom: 16px;">📅 Timeline</h3>
+                    <p style="font-size: 0.875rem; color: rgba(255,255,255,0.7);">Historical and future close approach analysis (1900-2100)</p>
+                </div>
+            </a>
+            
+            <a href="/user-dashboard" style="text-decoration: none;">
+                <div class="card" style="cursor: pointer;">
+                    <h3 style="margin-bottom: 16px;">👤 User Dashboard</h3>
+                    <p style="font-size: 0.875rem; color: rgba(255,255,255,0.7);">Personal watchlist, alerts, and account settings</p>
+                </div>
+            </a>
         </div>
 
         <!-- Recent Alerts -->
@@ -150,13 +185,21 @@
             .then(res => res.json())
             .then(data => {
                 const alertsDiv = document.getElementById('recentAlerts');
-                const topAlerts = data.slice(0, 5);
+                const watchlist = data.watchlist || [];
+                const topAlerts = watchlist.slice(0, 5);
                 
                 if (topAlerts.length > 0) {
                     alertsDiv.innerHTML = topAlerts.map((item, idx) => `
                         <div style="padding: 12px; margin-bottom: 8px; background: rgba(0,191,255,0.05); border-left: 3px solid ${item.threat_score > 0.7 ? '#ff0000' : item.threat_score > 0.4 ? '#ffa500' : '#00ff7f'}; border-radius: 4px;">
                             <div style="display: flex; justify-content: space-between; align-items: center;">
-                                <span>#${idx + 1} - Object ID: ${item.spkid}</span>
+                                <div>
+                                    <a href="${item.url}" target="_blank" style="color: #00bfff; text-decoration: none; font-weight: 500;">
+                                        #${idx + 1} - ${item.name} ↗
+                                    </a>
+                                    <div style="font-size: 0.75rem; color: rgba(255,255,255,0.5); margin-top: 2px;">
+                                        SPKID: ${item.spkid}
+                                    </div>
+                                </div>
                                 <span class="badge ${item.threat_score > 0.7 ? 'badge-critical' : item.threat_score > 0.4 ? 'badge-high' : 'badge-medium'}">
                                     ${(item.threat_score * 100).toFixed(1)}%
                                 </span>

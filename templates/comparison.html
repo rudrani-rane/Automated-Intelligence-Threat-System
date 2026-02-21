@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Asteroid Comparison - ATIS</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <script src="https://cdn.plot.ly/plotly-2.26.0.min.js"></script>
+</head>
+<body>
+    <nav class="navbar">
+        <a href="/" class="nav-logo">ATIS</a>
+        <div class="nav-links">
+            <a href="/">Home</a>
+            <a href="/galaxy">Galaxy</a>
+            <a href="/radar">Radar</a>
+            <a href="/watchlist">Watchlist</a>
+            <a href="/trajectory">Trajectory</a>
+            <a href="/orbital-simulator">Orbits</a>
+            <a href="/time-machine">Time Machine</a>
+            <a href="/analytics">Analytics</a>
+            <a href="/multi-view">Multi-View</a>
+            <a href="/approach-corridor">Corridor</a>
+            <a href="/impact-simulation">Impact</a>
+            <a href="/comparison" class="active">Compare</a>
+        </div>
+    </nav>
+
+    <div class="container" style="padding-top: 80px;">
+        <div class="page-header">
+            <h1>Asteroid Comparison Tool</h1>
+            <p>Side-by-side comparison of multiple Near-Earth Objects</p>
+        </div>
+
+        <!-- Selection Panel -->
+        <div class="comparison-selector">
+            <div class="selector-slot">
+                <h3>Asteroid A</h3>
+                <input type="text" id="searchA" placeholder="Search asteroid..." class="search-input">
+                <div id="resultsA" class="search-results"></div>
+                <div id="selectedA" class="selected-asteroid">
+                    <p>No asteroid selected</p>
+                </div>
+            </div>
+
+            <div class="selector-slot">
+                <h3>Asteroid B</h3>
+                <input type="text" id="searchB" placeholder="Search asteroid..." class="search-input">
+                <div id="resultsB" class="search-results"></div>
+                <div id="selectedB" class="selected-asteroid">
+                    <p>No asteroid selected</p>
+                </div>
+            </div>
+
+            <div class="selector-slot">
+                <h3>Asteroid C (Optional)</h3>
+                <input type="text" id="searchC" placeholder="Search asteroid..." class="search-input">
+                <div id="resultsC" class="search-results"></div>
+                <div id="selectedC" class="selected-asteroid">
+                    <p>No asteroid selected</p>
+                </div>
+            </div>
+        </div>
+
+        <div style="text-align: center; margin: 30px 0;">
+            <button id="compareBtn" class="btn btn-primary" disabled>Compare Selected Asteroids</button>
+            <button id="clearBtn" class="btn btn-secondary">Clear All</button>
+        </div>
+
+        <!-- Comparison Results -->
+        <div id="comparisonResults" style="display: none;">
+            <!-- Basic Properties Comparison Table -->
+            <div class="comparison-section">
+                <h2>Basic Properties</h2>
+                <div class="comparison-table-container">
+                    <table class="comparison-table">
+                        <thead>
+                            <tr>
+                                <th>Property</th>
+                                <th id="headerA">Asteroid A</th>
+                                <th id="headerB">Asteroid B</th>
+                                <th id="headerC" style="display: none;">Asteroid C</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>Name</strong></td>
+                                <td id="nameA">-</td>
+                                <td id="nameB">-</td>
+                                <td id="nameC" style="display: none;">-</td>
+                            </tr>
+                            <tr>
+                                <td><strong>SPKID</strong></td>
+                                <td id="spkidA">-</td>
+                                <td id="spkidB">-</td>
+                                <td id="spkidC" style="display: none;">-</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Threat Score</strong></td>
+                                <td id="threatA">-</td>
+                                <td id="threatB">-</td>
+                                <td id="threatC" style="display: none;">-</td>
+                            </tr>
+                            <tr>
+                                <td><strong>PHA Status</strong></td>
+                                <td id="phaA">-</td>
+                                <td id="phaB">-</td>
+                                <td id="phaC" style="display: none;">-</td>
+                            </tr>
+                            <tr>
+                                <td><strong>MOID (AU)</strong></td>
+                                <td id="moidA">-</td>
+                                <td id="moidB">-</td>
+                                <td id="moidC" style="display: none;">-</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Relative Velocity (km/s)</strong></td>
+                                <td id="velocityA">-</td>
+                                <td id="velocityB">-</td>
+                                <td id="velocityC" style="display: none;">-</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Absolute Magnitude (H)</strong></td>
+                                <td id="hA">-</td>
+                                <td id="hB">-</td>
+                                <td id="hC" style="display: none;">-</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Observations Used</strong></td>
+                                <td id="obsA">-</td>
+                                <td id="obsB">-</td>
+                                <td id="obsC" style="display: none;">-</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Orbital Elements Comparison -->
+            <div class="comparison-section">
+                <h2>Orbital Elements</h2>
+                <div class="comparison-table-container">
+                    <table class="comparison-table">
+                        <thead>
+                            <tr>
+                                <th>Element</th>
+                                <th>Asteroid A</th>
+                                <th>Asteroid B</th>
+                                <th id="orbHeaderC" style="display: none;">Asteroid C</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>Semi-major Axis (AU)</strong></td>
+                                <td id="aA">-</td>
+                                <td id="aB">-</td>
+                                <td id="aC" style="display: none;">-</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Eccentricity</strong></td>
+                                <td id="eA">-</td>
+                                <td id="eB">-</td>
+                                <td id="eC" style="display: none;">-</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Inclination (°)</strong></td>
+                                <td id="iA">-</td>
+                                <td id="iB">-</td>
+                                <td id="iC" style="display: none;">-</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Long. Asc. Node (°)</strong></td>
+                                <td id="omA">-</td>
+                                <td id="omB">-</td>
+                                <td id="omC" style="display: none;">-</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Arg. Perihelion (°)</strong></td>
+                                <td id="wA">-</td>
+                                <td id="wB">-</td>
+                                <td id="wC" style="display: none;">-</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Perihelion Distance (AU)</strong></td>
+                                <td id="qA">-</td>
+                                <td id="qB">-</td>
+                                <td id="qC" style="display: none;">-</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Visual Comparisons -->
+            <div class="charts-container">
+                <div class="chart-panel">
+                    <h2>Threat Comparison</h2>
+                    <div id="threatChart"></div>
+                </div>
+
+                <div class="chart-panel">
+                    <h2>Orbital Characteristics</h2>
+                    <div id="orbitalChart"></div>
+                </div>
+
+                <div class="chart-panel">
+                    <h2>Size & Velocity Comparison</h2>
+                    <div id="sizeVelocityChart"></div>
+                </div>
+
+                <div class="chart-panel">
+                    <h2>Risk Factors</h2>
+                    <div id="riskChart"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/comparison.js"></script>
+</body>
+</html>

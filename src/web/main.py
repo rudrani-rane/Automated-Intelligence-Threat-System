@@ -44,7 +44,72 @@ def trajectory_page(request: Request):
     """Trajectory Detection System"""
     return templates.TemplateResponse("trajectory.html", {"request": request})
 
+@app.get("/orbital-simulator")
+def orbital_simulator_page(request: Request):
+    """Real Keplerian Orbital Path Simulator"""
+    return templates.TemplateResponse("orbital_simulator.html", {"request": request})
+
+@app.get("/time-machine")
+def time_machine_page(request: Request):
+    """Time-Based Asteroid Position Viewer"""
+    return templates.TemplateResponse("time_machine.html", {"request": request})
+
+@app.get("/analytics")
+def analytics_page(request: Request):
+    """Comprehensive Analytics Dashboard"""
+    return templates.TemplateResponse("analytics.html", {"request": request})
+
+@app.get("/multi-view")
+def multi_view_page(request: Request):
+    """Multi-Panel Synchronized Visualization Dashboard"""
+    return templates.TemplateResponse("multi_view.html", {"request": request})
+
+@app.get("/approach-corridor")
+def approach_corridor_page(request: Request):
+    """Close Approach Corridor Visualization"""
+    return templates.TemplateResponse("approach_corridor.html", {"request": request})
+
+@app.get("/impact-simulation")
+def impact_simulation_page(request: Request):
+    """Impact Ground Track and Damage Zone Simulation"""
+    return templates.TemplateResponse("impact_simulation.html", {"request": request})
+
+@app.get("/comparison")
+def comparison_page(request: Request):
+    """Asteroid Side-by-Side Comparison Tool"""
+    return templates.TemplateResponse("comparison.html", {"request": request})
+
+@app.get("/historical-timeline")
+def historical_timeline_page(request: Request):
+    """Historical Close Approach Timeline Analysis"""
+    return templates.TemplateResponse("historical_timeline.html", {"request": request})
+
+@app.get("/ml-dashboard")
+def ml_dashboard_page(request: Request):
+    """Machine Learning Performance & Explainability Dashboard"""
+    return templates.TemplateResponse("ml_dashboard.html", {"request": request})
+
+@app.get("/user-dashboard")
+def user_dashboard_page(request: Request):
+    """User Account Dashboard and Watchlist"""
+    return templates.TemplateResponse("user_dashboard.html", {"request": request})
+
+@app.get("/alerts")
+def alerts_page(request: Request):
+    """Real-Time Alert Monitoring Dashboard"""
+    return templates.TemplateResponse("alerts.html", {"request": request})
+
 @app.on_event("startup")
 async def start_background_tasks():
-    """Initialize background live data updater"""
+    """Initialize background tasks and services"""
+    from src.web.websocket_manager import broadcast_periodic_updates, connection_manager
+    from src.web.alert_notifier import initialize_alert_notifier
+    from src.web.analytics_engine import initialize_analytics_engine
+    
+    # Initialize systems
+    initialize_alert_notifier(connection_manager)
+    initialize_analytics_engine()
+    
+    # Start background tasks
     asyncio.create_task(background_updater())
+    asyncio.create_task(broadcast_periodic_updates())

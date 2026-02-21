@@ -32,9 +32,12 @@
                 </p>
             </div>
             <div style="display: flex; gap: 12px; align-items: center;">
-                <div class="status-indicator">
-                    <div class="status-dot active"></div>
-                    <span id="updateStatus">Auto-Update ON</span>
+                <div class="status-indicator ws-status-indicator" data-status="disconnected">
+                    <div class="status-dot"></div>
+                    <span id="updateStatus">Connecting...</span>
+                </div>
+                <div style="font-family: var(--font-mono); font-size: 0.75rem; color: rgba(255,255,255,0.5);">
+                    Last Update: <span id="lastUpdateTime">--:--:--</span>
                 </div>
                 <button class="btn btn-secondary" onclick="refreshData()">🔄 Refresh</button>
                 <button class="btn btn-primary" onclick="exportCSV()">📥 Export CSV</button>
@@ -48,7 +51,7 @@
                     <input 
                         type="text" 
                         id="searchInput" 
-                        placeholder="Search by Object ID..." 
+                        placeholder="Search by name or object ID..." 
                         style="width: 100%; padding: 12px; background: rgba(0,191,255,0.05); border: 1px solid var(--border-gray); border-radius: 4px; color: white; font-family: var(--font-mono); font-size: 0.875rem;"
                         onkeyup="filterTable()"
                     >
@@ -80,7 +83,7 @@
                     <thead>
                         <tr>
                             <th onclick="sortTable(0)">Rank ▼</th>
-                            <th onclick="sortTable(1)">Object ID ▼</th>
+                            <th onclick="sortTable(1)">Asteroid ▼</th>
                             <th onclick="sortTable(2)">Threat Score ▼</th>
                             <th onclick="sortTable(3)">Status ▼</th>
                             <th>Trend</th>
@@ -100,6 +103,9 @@
         </div>
     </div>
 
+    <!-- WebSocket Client -->
+    <script src="/static/js/websocket_client.js"></script>
+    
     <script>
         let watchlistData = [];
         let sortColumn = 2; // Default sort by threat score
@@ -110,9 +116,7 @@
             fetch('/api/watchlist')
                 .then(res => res.json())
                 .then(data => {
-                    watchlistData = data;
-                    renderTable(data);
-                    document.getElementById('resultCount').textContent = `${data.length} objects`;
+                    updateWatchlistData(data.watchlist || []);
                 })
                 .catch(err => {
                     console.error('Error loading watchlist:', err);
@@ -125,6 +129,45 @@
                     `;
                 });
         }
+        
+        // Update watchlist data (shared function for initial load and WebSocket updates)
+        function updateWatchlistData(data) {
+            watchlistData = data;
+            renderTable(watchlistData);
+            document.getElementById('resultCount').textContent = `${watchlistData.length} objects`;
+            
+            // Update timestamp
+            const now = new Date();
+            const timeEl = document.getElementById('lastUpdateTime');
+            if (timeEl) {
+                timeEl.textContent = now.toLocaleTimeString();
+            }
+        }
+        
+        // WebSocket event handlers
+        window.addEventListener('ws_connected', () => {
+            console.log('[Watchlist] WebSocket connected, subscribing to updates...');
+            wsClient.subscribe('watchlist');
+            document.getElementById('updateStatus').textContent = 'Real-Time Updates ON';
+        });
+        
+        window.addEventListener('ws_disconnected', () => {
+            console.log('[Watchlist] WebSocket disconnected');
+            document.getElementById('updateStatus').textContent = 'Reconnecting...';
+        });
+        
+        window.addEventListener('ws_watchlist_update', (event) => {
+            console.log('[Watchlist] Received watchlist update:', event.detail);
+            updateWatchlistData(event.detail);
+        });
+        
+        window.addEventListener('ws_alert', (event) => {
+            console.log('[Watchlist] Received alert:', event.detail);
+            // Show alert notification for critical threats
+            if (event.detail.level === 'critical') {
+                wsClient.showNotification('⚠️ Critical Threat Alert', event.detail.message, 'error');
+            }
+        });
 
         // Render table
         function renderTable(data) {
@@ -167,7 +210,16 @@
                 return `
                     <tr data-threat="${item.threat_score}" data-id="${item.spkid}">
                         <td style="font-weight: 600; color: var(--electric-blue);">#${idx + 1}</td>
-                        <td style="font-family: var(--font-mono);">${item.spkid}</td>
+                        <td>
+                            <div style="display: flex; flex-direction: column;">
+                                <a href="${item.url}" target="_blank" style="color: #00bfff; text-decoration: none; font-weight: 500;">
+                                    ${item.name} ↗
+                                </a>
+                                <span style="font-family: var(--font-mono); font-size: 0.75rem; color: rgba(255,255,255,0.5); margin-top: 2px;">
+                                    SPKID: ${item.spkid}
+                                </span>
+                            </div>
+                        </td>
                         <td>
                             <div style="display: flex; align-items: center; gap: 12px;">
                                 <div style="flex: 1; background: rgba(0,191,255,0.1); border-radius: 4px; height: 20px; position: relative; overflow: hidden;">
@@ -179,9 +231,9 @@
                         <td><span class="badge ${badgeClass}">${statusText}</span></td>
                         <td>${sparkline}</td>
                         <td>
-                            <button class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.75rem;" onclick="viewDetails('${item.spkid}')">
-                                Details
-                            </button>
+                            <a href="${item.url}" target="_blank" class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.75rem; text-decoration: none;">
+                                NASA JPL
+                            </a>
                         </td>
                     </tr>
                 `;
@@ -229,7 +281,8 @@
             const filterValue = document.getElementById('filterSelect').value;
             
             let filtered = watchlistData.filter(item => {
-                const matchesSearch = item.spkid.toString().includes(searchValue);
+                const matchesSearch = item.spkid.toString().includes(searchValue) || 
+                                     item.name.toLowerCase().includes(searchValue);
                 let matchesFilter = true;
                 
                 switch(filterValue) {

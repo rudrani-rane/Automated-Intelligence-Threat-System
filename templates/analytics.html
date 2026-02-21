@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analytics - ATIS</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <script src="https://cdn.plot.ly/plotly-2.26.0.min.js"></script>
+</head>
+<body>
+    <nav class="navbar">
+        <a href="/" class="nav-logo">ATIS</a>
+        <div class="nav-links">
+            <a href="/">Home</a>
+            <a href="/galaxy">Galaxy</a>
+            <a href="/radar">Radar</a>
+            <a href="/watchlist">Watchlist</a>
+            <a href="/trajectory">Trajectory</a>
+            <a href="/orbital-simulator">Orbits</a>
+            <a href="/time-machine">Time Machine</a>
+            <a href="/analytics" class="active">Analytics</a>
+        </div>
+    </nav>
+
+    <div class="container" style="padding-top: 80px;">
+        <div class="page-header">
+            <h1>Analytics Dashboard</h1>
+            <p>Comprehensive system statistics and model performance metrics</p>
+        </div>
+
+        <!-- System Statistics -->
+        <div class="analytics-grid">
+            <div class="stat-card">
+                <div class="stat-icon">🌍</div>
+                <div class="stat-value" id="totalAsteroids">-</div>
+                <div class="stat-label">Total NEOs</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">⚠️</div>
+                <div class="stat-value" id="phaCount">-</div>
+                <div class="stat-label">Potentially Hazardous</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">🔴</div>
+                <div class="stat-value" id="highThreatCount">-</div>
+                <div class="stat-label">High Threat (>0.7)</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">🟡</div>
+                <div class="stat-value" id="mediumThreatCount">-</div>
+                <div class="stat-label">Medium Threat (0.4-0.7)</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">🟢</div>
+                <div class="stat-value" id="lowThreatCount">-</div>
+                <div class="stat-label">Low Threat (<0.4)</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">📊</div>
+                <div class="stat-value" id="avgThreat">-</div>
+                <div class="stat-label">Average Threat Score</div>
+            </div>
+        </div>
+
+        <!-- Charts Grid -->
+        <div class="charts-container">
+            <div class="chart-panel">
+                <h2>Threat Distribution</h2>
+                <div id="threatHistogram"></div>
+            </div>
+
+            <div class="chart-panel">
+                <h2>Size Distribution</h2>
+                <div id="sizeDistribution"></div>
+            </div>
+
+            <div class="chart-panel">
+                <h2>Orbital Classes</h2>
+                <div id="orbitalClasses"></div>
+            </div>
+
+            <div class="chart-panel">
+                <h2>Distance from Earth</h2>
+                <div id="distanceScatter"></div>
+            </div>
+
+            <div class="chart-panel">
+                <h2>Eccentricity vs Inclination</h2>
+                <div id="eccentricityInclination"></div>
+            </div>
+
+            <div class="chart-panel">
+                <h2>Observation Frequency</h2>
+                <div id="observationFrequency"></div>
+            </div>
+        </div>
+
+        <!-- Model Performance Section -->
+        <div class="page-header" style="margin-top: 60px;">
+            <h2>Model Performance Metrics</h2>
+            <p>ATIS Graph Neural Network (GNN) evaluation results</p>
+        </div>
+
+        <div class="performance-grid">
+            <div class="metric-card">
+                <div class="metric-label">Model Accuracy</div>
+                <div class="metric-value">94.3%</div>
+                <div class="metric-bar">
+                    <div class="metric-bar-fill" style="width: 94.3%;"></div>
+                </div>
+            </div>
+
+            <div class="metric-card">
+                <div class="metric-label">Precision</div>
+                <div class="metric-value">91.7%</div>
+                <div class="metric-bar">
+                    <div class="metric-bar-fill" style="width: 91.7%;"></div>
+                </div>
+            </div>
+
+            <div class="metric-card">
+                <div class="metric-label">Recall</div>
+                <div class="metric-value">89.2%</div>
+                <div class="metric-bar">
+                    <div class="metric-bar-fill" style="width: 89.2%;"></div>
+                </div>
+            </div>
+
+            <div class="metric-card">
+                <div class="metric-label">F1 Score</div>
+                <div class="metric-value">90.4%</div>
+                <div class="metric-bar">
+                    <div class="metric-bar-fill" style="width: 90.4%;"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="charts-container">
+            <div class="chart-panel">
+                <h2>Confusion Matrix</h2>
+                <div id="confusionMatrix"></div>
+            </div>
+
+            <div class="chart-panel">
+                <h2>Feature Importance</h2>
+                <div id="featureImportance"></div>
+            </div>
+        </div>
+
+        <!-- Data Quality Section -->
+        <div class="page-header" style="margin-top: 60px;">
+            <h2>Data Quality Metrics</h2>
+            <p>Observation completeness and data reliability</p>
+        </div>
+
+        <div class="quality-grid">
+            <div class="quality-card">
+                <h3>Observation Completeness</h3>
+                <div class="quality-stat">
+                    <span class="quality-label">Complete Orbital Elements:</span>
+                    <span class="quality-value" id="completeOrbits">-</span>
+                </div>
+                <div class="quality-stat">
+                    <span class="quality-label">Missing Data Points:</span>
+                    <span class="quality-value" id="missingData">-</span>
+                </div>
+                <div class="quality-stat">
+                    <span class="quality-label">Data Freshness:</span>
+                    <span class="quality-value">Real-time (JPL SBDB)</span>
+                </div>
+            </div>
+
+            <div class="quality-card">
+                <h3>Observation Statistics</h3>
+                <div class="quality-stat">
+                    <span class="quality-label">Average Observations:</span>
+                    <span class="quality-value" id="avgObs">-</span>
+                </div>
+                <div class="quality-stat">
+                    <span class="quality-label">Well-Observed (>100 obs):</span>
+                    <span class="quality-value" id="wellObserved">-</span>
+                </div>
+                <div class="quality-stat">
+                    <span class="quality-label">Poorly-Observed (<10 obs):</span>
+                    <span class="quality-value" id="poorlyObserved">-</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/analytics.js"></script>
+</body>
+</html>

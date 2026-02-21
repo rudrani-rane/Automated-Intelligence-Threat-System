@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multi-View Dashboard - ATIS</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <script src="https://cdn.plot.ly/plotly-2.26.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body>
+    <nav class="navbar">
+        <a href="/" class="nav-logo">ATIS</a>
+        <div class="nav-links">
+            <a href="/">Home</a>
+            <a href="/galaxy">Galaxy</a>
+            <a href="/radar">Radar</a>
+            <a href="/watchlist">Watchlist</a>
+            <a href="/trajectory">Trajectory</a>
+            <a href="/orbital-simulator">Orbits</a>
+            <a href="/time-machine">Time Machine</a>
+            <a href="/analytics">Analytics</a>
+            <a href="/multi-view" class="active">Multi-View</a>
+        </div>
+    </nav>
+
+    <div class="multi-view-container">
+        <!-- Control Panel -->
+        <div class="multi-view-controls">
+            <h3>View Configuration</h3>
+            <div class="control-group">
+                <label for="layoutSelect">Layout:</label>
+                <select id="layoutSelect" class="btn btn-secondary">
+                    <option value="quad">Quad (2x2)</option>
+                    <option value="horizontal">Horizontal Split</option>
+                    <option value="vertical">Vertical Split</option>
+                    <option value="triple">Triple View</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <label>Selected Asteroid:</label>
+                <input type="text" id="asteroidSearch" placeholder="Search by name or ID..." class="search-input">
+                <div id="searchResults" class="search-results"></div>
+            </div>
+
+            <div class="control-group">
+                <button id="syncViews" class="btn btn-primary">Sync All Views</button>
+                <button id="resetViews" class="btn btn-secondary">Reset Views</button>
+            </div>
+
+            <div class="info-panel">
+                <h4>Current Selection</h4>
+                <div id="selectionInfo">
+                    <p><strong>Name:</strong> <span id="infoName">-</span></p>
+                    <p><strong>SPKID:</strong> <span id="infoSpkid">-</span></p>
+                    <p><strong>Threat:</strong> <span id="infoThreat">-</span></p>
+                    <p><strong>MOID:</strong> <span id="infoMoid">-</span> AU</p>
+                    <p><strong>Velocity:</strong> <span id="infoVelocity">-</span> km/s</p>
+                    <p><strong>PHA:</strong> <span id="infoPha">-</span></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- View Grid -->
+        <div class="multi-view-grid" id="viewGrid">
+            <!-- View 1: 3D Orbital Path -->
+            <div class="view-panel" id="view1">
+                <div class="view-header">
+                    <h3>3D Orbital Path</h3>
+                    <div class="view-controls">
+                        <button class="view-toggle" data-view="orbit3d">↻</button>
+                    </div>
+                </div>
+                <canvas id="canvas1"></canvas>
+            </div>
+
+            <!-- View 2: Close Approach Timeline -->
+            <div class="view-panel" id="view2">
+                <div class="view-header">
+                    <h3>Close Approach Timeline</h3>
+                    <div class="view-controls">
+                        <button class="view-toggle" data-view="timeline">↻</button>
+                    </div>
+                </div>
+                <div id="chart1"></div>
+            </div>
+
+            <!-- View 3: Orbital Elements -->
+            <div class="view-panel" id="view3">
+                <div class="view-header">
+                    <h3>Orbital Elements Radar</h3>
+                    <div class="view-controls">
+                        <button class="view-toggle" data-view="radar">↻</button>
+                    </div>
+                </div>
+                <div id="chart2"></div>
+            </div>
+
+            <!-- View 4: Impact Assessment -->
+            <div class="view-panel" id="view4">
+                <div class="view-header">
+                    <h3>Impact Assessment</h3>
+                    <div class="view-controls">
+                        <button class="view-toggle" data-view="impact">↻</button>
+                    </div>
+                </div>
+                <div id="chart3"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/multi_view.js"></script>
+</body>
+</html>

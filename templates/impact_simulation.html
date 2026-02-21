@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Impact Simulation - ATIS</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body>
+    <nav class="navbar">
+        <a href="/" class="nav-logo">ATIS</a>
+        <div class="nav-links">
+            <a href="/">Home</a>
+            <a href="/galaxy">Galaxy</a>
+            <a href="/radar">Radar</a>
+            <a href="/watchlist">Watchlist</a>
+            <a href="/trajectory">Trajectory</a>
+            <a href="/orbital-simulator">Orbits</a>
+            <a href="/time-machine">Time Machine</a>
+            <a href="/analytics">Analytics</a>
+            <a href="/multi-view">Multi-View</a>
+            <a href="/approach-corridor">Corridor</a>
+            <a href="/impact-simulation" class="active">Impact</a>
+        </div>
+    </nav>
+
+    <!-- Control Panel -->
+    <div class="floating-panel" style="top: 80px; left: 20px; width: 340px; max-height: 85vh; overflow-y: auto;">
+        <h2>Impact Simulation</h2>
+        <p style="font-size: 0.85rem; opacity: 0.8; margin-bottom: 16px;">
+            Visualize potential impact zones and effects on Earth's surface
+        </p>
+
+        <div class="form-group">
+            <label for="searchInput">Select Asteroid</label>
+            <input type="text" id="searchInput" placeholder="Search by name or ID..." class="search-input">
+            <div id="searchResults" class="search-results"></div>
+        </div>
+
+        <div class="form-group">
+            <label for="impactLat">Impact Latitude</label>
+            <input type="range" id="impactLat" min="-90" max="90" value="0" step="1">
+            <span id="latValue">0°</span>
+        </div>
+
+        <div class="form-group">
+            <label for="impactLon">Impact Longitude</label>
+            <input type="range" id="impactLon" min="-180" max="180" value="0" step="1">
+            <span id="lonValue">0°</span>
+        </div>
+
+        <div class="form-group">
+            <label for="impactAngle">Impact Angle</label>
+            <input type="range" id="impactAngle" min="15" max="90" value="45" step="1">
+            <span id="angleValue">45°</span>
+        </div>
+
+        <div class="form-group">
+            <button id="simulateBtn" class="btn btn-primary" disabled>Simulate Impact</button>
+            <button id="clearBtn" class="btn btn-secondary">Clear</button>
+        </div>
+
+        <div id="impactResults" class="info-box" style="display: none;">
+            <h3>Impact Analysis</h3>
+            
+            <div class="stat-row">
+                <span class="stat-label">Asteroid:</span>
+                <span class="stat-value" id="impactName">-</span>
+            </div>
+            
+            <div class="stat-row">
+                <span class="stat-label">Diameter:</span>
+                <span class="stat-value" id="impactDiameter">-</span>
+            </div>
+            
+            <div class="stat-row">
+                <span class="stat-label">Velocity:</span>
+                <span class="stat-value" id="impactVelocity">-</span>
+            </div>
+            
+            <div class="stat-row">
+                <span class="stat-label">Impact Energy:</span>
+                <span class="stat-value" id="impactEnergy">-</span>
+            </div>
+            
+            <div class="stat-row">
+                <span class="stat-label">Crater Diameter:</span>
+                <span class="stat-value" id="craterDiameter">-</span>
+            </div>
+            
+            <div class="stat-row">
+                <span class="stat-label">Earthquake Magnitude:</span>
+                <span class="stat-value" id="earthquakeMag">-</span>
+            </div>
+            
+            <h4 style="margin-top: 16px; color: #ff6600;">Damage Zones</h4>
+            
+            <div class="damage-zone" style="background: rgba(255,0,0,0.1); padding: 8px; margin: 4px 0; border-left: 3px solid #ff0000;">
+                <strong>Total Destruction:</strong>
+                <span id="zoneTotal">-</span>
+            </div>
+            
+            <div class="damage-zone" style="background: rgba(255,102,0,0.1); padding: 8px; margin: 4px 0; border-left: 3px solid #ff6600;">
+                <strong>Severe Damage:</strong>
+                <span id="zoneSevere">-</span>
+            </div>
+            
+            <div class="damage-zone" style="background: rgba(255,170,0,0.1); padding: 8px; margin: 4px 0; border-left: 3px solid #ffaa00;">
+                <strong>Moderate Damage:</strong>
+                <span id="zoneModerate">-</span>
+            </div>
+            
+            <div class="damage-zone" style="background: rgba(255,255,0,0.1); padding: 8px; margin: 4px 0; border-left: 3px solid #ffff00;">
+                <strong>Light Damage:</strong>
+                <span id="zoneLight">-</span>
+            </div>
+            
+            <div id="comparisonBox" style="margin-top: 16px; padding: 12px; background: rgba(0,191,255,0.1); border-radius: 4px;">
+                <strong style="color: #00d4ff;">Comparable to:</strong>
+                <p id="comparisonText" style="margin: 8px 0 0 0; font-size: 0.9rem;">-</p>
+            </div>
+        </div>
+
+        <div class="legend" style="margin-top: 20px;">
+            <h4>Damage Zones</h4>
+            <div class="legend-item">
+                <span class="legend-box" style="background: #ff0000;"></span>
+                <span>Total Destruction</span>
+            </div>
+            <div class="legend-item">
+                <span class="legend-box" style="background: #ff6600;"></span>
+                <span>Severe Damage</span>
+            </div>
+            <div class="legend-item">
+                <span class="legend-box" style="background: #ffaa00;"></span>
+                <span>Moderate Damage</span>
+            </div>
+            <div class="legend-item">
+                <span class="legend-box" style="background: #ffff00;"></span>
+                <span>Light Damage</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3D Scene -->
+    <canvas id="scene"></canvas>
+
+    <script src="/static/js/impact_simulation.js"></script>
+</body>
+</html>

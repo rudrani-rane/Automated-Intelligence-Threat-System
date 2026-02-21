@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Orbital Simulator - ATIS</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;500;600&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-content">
+            <div class="logo">🛰️ ATIS</div>
+            <ul class="nav-links">
+                <li><a href="/">Home</a></li>
+                <li><a href="/galaxy">Galaxy</a></li>
+                <li><a href="/radar">Radar</a></li>
+                <li><a href="/watchlist">Watchlist</a></li>
+                <li><a href="/trajectory">Trajectory</a></li>
+                <li><a href="/orbital-simulator" class="active">Orbits</a></li>
+                <li><a href="/time-machine">Time Machine</a></li>
+                <li><a href="/analytics">Analytics</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Full-screen 3D Canvas -->
+    <canvas id="scene" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1;"></canvas>
+
+    <!-- Control Panel -->
+    <div class="panel panel-top-left" style="z-index: 100;">
+        <h3 style="margin-bottom: 16px;">🛸 Orbital Simulator</h3>
+        
+        <div style="margin-bottom: 16px;">
+            <label style="display: block; margin-bottom: 8px; font-size: 0.875rem; color: rgba(255,255,255,0.8);">
+                Select Asteroid
+            </label>
+            <input 
+                type="text" 
+                id="asteroidSearch" 
+                placeholder="Enter SPKID or name..."
+                style="width: 100%; padding: 8px; background: rgba(0,191,255,0.05); border: 1px solid var(--border-gray); border-radius: 4px; color: white; font-family: var(--font-mono); font-size: 0.875rem;"
+            >
+            <div id="searchResults" style="max-height: 200px; overflow-y: auto; margin-top: 8px;"></div>
+        </div>
+
+        <div style="margin-bottom: 16px;">
+            <button class="btn btn-primary" onclick="loadEarthOrbit()" style="width: 100%; margin-bottom: 8px;">
+                Show Earth Orbit
+            </button>
+            <button class="btn btn-secondary" onclick="clearOrbits()" style="width: 100%;">
+                Clear All Orbits
+            </button>
+        </div>
+
+        <div style="font-size: 0.75rem; color: rgba(255,255,255,0.6); border-top: 1px solid var(--border-gray); padding-top: 12px; margin-top: 12px;">
+            <div><strong>Controls:</strong></div>
+            <div>• Mouse drag to rotate</div>
+            <div>• Scroll to zoom</div>
+            <div>• Click asteroid to load orbit</div>
+        </div>
+    </div>
+
+    <!-- Info Panel -->
+    <div class="panel panel-top-right" style="z-index: 100; max-width: 350px;">
+        <h3 style="margin-bottom: 16px;">📊 Orbital Information</h3>
+        <div id="orbitalInfo">
+            <p style="color: rgba(255,255,255,0.6); text-align: center; padding: 20px;">
+                Select an asteroid to view orbital details
+            </p>
+        </div>
+    </div>
+
+    <!-- Legend -->
+    <div class="panel panel-bottom-left" style="z-index: 100;">
+        <h4 style="margin-bottom: 12px;">Legend</h4>
+        <div style="display: flex; flex-direction: column; gap: 8px; font-size: 0.875rem;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <div style="width: 12px; height: 12px; border-radius: 50%; background: #ffd700;"></div>
+                <span>Sun</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <div style="width: 12px; height: 12px; border-radius: 50%; background: #2233ff;"></div>
+                <span>Earth</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <div style="width: 12px; height: 2px; background: #00bfff;"></div>
+                <span>Earth Orbit</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <div style="width: 12px; height: 2px; background: #ff00ff;"></div>
+                <span>Asteroid Orbit</span>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/orbital_simulator.js"></script>
+</body>
+</html>

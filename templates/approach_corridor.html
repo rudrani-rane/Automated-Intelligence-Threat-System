@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Close Approach Corridor - ATIS</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body>
+    <nav class="navbar">
+        <a href="/" class="nav-logo">ATIS</a>
+        <div class="nav-links">
+            <a href="/">Home</a>
+            <a href="/galaxy">Galaxy</a>
+            <a href="/radar">Radar</a>
+            <a href="/watchlist">Watchlist</a>
+            <a href="/trajectory">Trajectory</a>
+            <a href="/orbital-simulator">Orbits</a>
+            <a href="/time-machine">Time Machine</a>
+            <a href="/analytics">Analytics</a>
+            <a href="/multi-view">Multi-View</a>
+            <a href="/approach-corridor" class="active">Corridor</a>
+        </div>
+    </nav>
+
+    <!-- Control Panel -->
+    <div class="floating-panel" style="top: 80px; left: 20px; width: 320px;">
+        <h2>Close Approach Corridor</h2>
+        <p style="font-size: 0.85rem; opacity: 0.8; margin-bottom: 16px;">
+            Visualize 3D uncertainty corridor during Earth flyby
+        </p>
+
+        <div class="form-group">
+            <label for="searchInput">Select Asteroid</label>
+            <input type="text" id="searchInput" placeholder="Search by name or ID..." class="search-input">
+            <div id="searchResults" class="search-results"></div>
+        </div>
+
+        <div class="form-group">
+            <button id="loadCorridorBtn" class="btn btn-primary" disabled>Load Corridor</button>
+            <button id="clearBtn" class="btn btn-secondary">Clear</button>
+        </div>
+
+        <div id="asteroidInfo" class="info-box" style="display: none;">
+            <h3>Asteroid Information</h3>
+            <p><strong>Name:</strong> <span id="infoName">-</span></p>
+            <p><strong>SPKID:</strong> <span id="infoSpkid">-</span></p>
+            <p><strong>Threat:</strong> <span id="infoThreat">-</span></p>
+            <p><strong>Min. Distance:</strong> <span id="infoMinDist">-</span> AU</p>
+            <p><strong>Date:</strong> <span id="infoDate">-</span></p>
+        </div>
+
+        <div class="legend" style="margin-top: 20px;">
+            <h4>Legend</h4>
+            <div class="legend-item">
+                <span class="legend-box" style="background: #2233ff;"></span>
+                <span>Earth</span>
+            </div>
+            <div class="legend-item">
+                <span class="legend-box" style="background: #ff00ff;"></span>
+                <span>Asteroid Trajectory</span>
+            </div>
+            <div class="legend-item">
+                <span class="legend-box" style="background: rgba(255,0,255,0.2);"></span>
+                <span>Uncertainty Corridor</span>
+            </div>
+            <div class="legend-item">
+                <span class="legend-box" style="background: #00ff00;"></span>
+                <span>Closest Approach Point</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3D Scene -->
+    <canvas id="scene"></canvas>
+
+    <script src="/static/js/approach_corridor.js"></script>
+</body>
+</html>

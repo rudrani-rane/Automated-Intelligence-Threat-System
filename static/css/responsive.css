@@ -1,0 +1,515 @@
+/* ================================================
+   ATIS - Responsive & Accessible CSS
+   Mobile-First Design with Accessibility Features
+   ================================================ */
+
+/* ===== Mobile-First Base Styles ===== */
+@media screen and (max-width: 768px) {
+    /* Navigation - Mobile Menu */
+    .navbar {
+        flex-direction: column;
+        padding: 12px;
+    }
+    
+    .nav-content {
+        flex-direction: column;
+        width: 100%;
+    }
+    
+    .nav-links {
+        flex-direction: column;
+        width: 100%;
+        gap: 8px;
+        margin-top: 12px;
+    }
+    
+    .nav-links li {
+        width: 100%;
+    }
+    
+    .nav-links a {
+        display: block;
+        padding: 12px;
+        text-align: center;
+    }
+    
+    /* Container - Full Width on Mobile */
+    .container {
+        padding: 16px;
+        margin-top: 60px !important;
+    }
+    
+    /* Typography - Smaller on Mobile */
+    h1 {
+        font-size: 1.75rem;
+    }
+    
+    h2 {
+        font-size: 1.5rem;
+    }
+    
+    h3 {
+        font-size: 1.25rem;
+    }
+    
+    /* Cards - Stack Vertically */
+    .card {
+        margin-bottom: 16px;
+    }
+    
+    .card-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+    }
+    
+    /* Grids - Single Column */
+    .stats-grid,
+    .analytics-grid {
+        grid-template-columns: 1fr !important;
+        gap: 12px;
+    }
+    
+    /* Two-column layouts - Stack */
+    [style*="grid-template-columns: 1fr 1fr"] {
+        grid-template-columns: 1fr !important;
+    }
+    
+    /* Buttons - Full Width */
+    .btn {
+        width: 100%;
+        padding: 12px 16px;
+    }
+    
+    .control-panel {
+        flex-direction: column;
+        gap: 8px;
+    }
+    
+    .control-panel .btn,
+    .control-panel select {
+        width: 100%;
+    }
+    
+    /* Tables - Horizontal Scroll */
+    .data-table {
+        display: block;
+        overflow-x: auto;
+        white-space: nowrap;
+        font-size: 0.875rem;
+    }
+    
+    .data-table th,
+    .data-table td {
+        padding: 8px;
+    }
+    
+    /* Chart Containers - Smaller Height */
+    .chart-container {
+        height: 300px !important;
+    }
+    
+    /* Floating Panels - Adapt to Mobile */
+    .floating-panel {
+        position: fixed !important;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        top: auto !important;
+        width: 100% !important;
+        max-height: 50vh;
+        overflow-y: auto;
+        border-radius: 12px 12px 0 0;
+        z-index: 1000;
+    }
+    
+    /* Hide complex visualizations on small screens */
+    .fullscreen canvas {
+        min-height: 400px;
+    }
+    
+    /* Touch-friendly spacing */
+    button, a, input, select {
+        min-height: 44px; /* Apple's minimum touch target */
+        min-width: 44px;
+    }
+    
+    /* Alert items - Simpler layout */
+    .alert-item {
+        font-size: 0.875rem;
+    }
+    
+    .alert-actions {
+        flex-direction: column;
+    }
+    
+    .alert-action-btn {
+        width: 100%;
+        text-align: center;
+    }
+}
+
+/* ===== Tablet Styles (768px - 1024px) ===== */
+@media screen and (min-width: 769px) and (max-width: 1024px) {
+    .container {
+        max-width: 960px;
+        padding: 24px;
+    }
+    
+    .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .nav-links {
+        gap: 16px;
+    }
+    
+    .chart-container {
+        height: 350px !important;
+    }
+}
+
+/* ===== Desktop Styles (>1024px) ===== */
+@media screen and (min-width: 1025px) {
+    .container {
+        max-width: 1200px;
+    }
+    
+    .stats-grid {
+        grid-template-columns: repeat(4, 1fr);
+    }
+}
+
+/* ===== Large Desktop (>1440px) ===== */
+@media screen and (min-width: 1441px) {
+    .container {
+        max-width: 1400px;
+    }
+    
+    .chart-container {
+        height: 500px !important;
+    }
+}
+
+/* ================================================
+   ACCESSIBILITY FEATURES
+   ================================================ */
+
+/* Focus Indicators - Keyboard Navigation */
+*:focus {
+    outline: 2px solid var(--electric-blue, #00bfff);
+    outline-offset: 2px;
+}
+
+*:focus:not(:focus-visible) {
+    outline: none;
+}
+
+*:focus-visible {
+    outline: 2px solid var(--electric-blue, #00bfff);
+    outline-offset: 2px;
+}
+
+/* Skip to Main Content Link */
+.skip-link {
+    position: absolute;
+    top: -40px;
+    left: 0;
+    background: var(--electric-blue, #00bfff);
+    color: #000;
+    padding: 8px 16px;
+    text-decoration: none;
+    z-index: 10000;
+}
+
+.skip-link:focus {
+    top: 0;
+}
+
+/* High Contrast Mode Support */
+@media (prefers-contrast: high) {
+    :root {
+        --electric-blue: #00f;
+        --danger: #f00;
+        --success: #0f0;
+    }
+    
+    .btn {
+        border-width: 2px;
+    }
+    
+    * {
+        text-shadow: none !important;
+    }
+}
+
+/* Reduced Motion Preferences */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+    
+    .spinner {
+        animation: none;
+        opacity: 0.5;
+    }
+}
+
+/* Dark Mode Adjustments (System Preference) */
+@media (prefers-color-scheme: dark) {
+    /* Already dark by default, ensure consistent styling */
+    body {
+        background-color: #000000;
+        color: #ffffff;
+    }
+}
+
+/* Light Mode Support (Optional Future Feature) */
+@media (prefers-color-scheme: light) {
+    /* Allow users to request light mode if needed */
+    body.light-mode {
+        background-color: #ffffff;
+        color: #000000;
+    }
+    
+    body.light-mode .card {
+        background: rgba(0,0,0,0.05);
+        border-color: rgba(0,0,0,0.1);
+    }
+}
+
+/* Screen Reader Only Content */
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+}
+
+.sr-only-focusable:focus {
+    position: static;
+    width: auto;
+    height: auto;
+    overflow: visible;
+    clip: auto;
+    white-space: normal;
+}
+
+/* Improved Text Readability */
+@media screen and (max-width: 768px) {
+    body {
+        font-size: 16px; /* Prevent zoom on iOS */
+    }
+    
+    input, select, textarea {
+        font-size: 16px; /* Prevent zoom on iOS */
+    }
+}
+
+/* ================================================
+   TOUCH OPTIMIZATIONS
+   ================================================ */
+
+/* Larger Touch Targets */
+@media (hover: none) and (pointer: coarse) {
+    /* Mobile/touch devices */
+    button, a, input, select {
+        min-height: 44px;
+        min-width: 44px;
+        padding: 12px 16px;
+    }
+    
+    .nav-links a {
+        padding: 16px 20px;
+    }
+    
+    /* Remove hover effects on touch */
+    .btn:hover,
+    .card:hover {
+        transform: none;
+    }
+    
+    /* Disable hover states */
+    @media (hover: none) {
+        /* Touch devices - hover states are auto-disabled */
+    }
+}
+
+/* ================================================
+   PRINT STYLES
+   ================================================ */
+
+@media print {
+    /* Hide non-essential elements */
+    .navbar,
+    .control-panel,
+    .ws-status-indicator,
+    .floating-panel,
+    .alert-actions,
+    button {
+        display: none !important;
+    }
+    
+    /* Optimize for print */
+    body {
+        background: white;
+        color: black;
+    }
+    
+    .card {
+        break-inside: avoid;
+        page-break-inside: avoid;
+    }
+    
+    /* Show URLs for links */
+    a[href]::after {
+        content: " (" attr(href) ")";
+        font-size: 0.8em;
+    }
+    
+    /* Ensure charts print properly */
+    canvas, svg {
+        max-width: 100%;
+        height: auto !important;
+    }
+}
+
+/* ================================================
+   ORIENTATION CHANGES
+   ================================================ */
+
+@media screen and (orientation: portrait) {
+    /* Portrait mode optimizations */
+    .fullscreen {
+        min-height: 100vh;
+    }
+}
+
+@media screen and (orientation: landscape) {
+    /* Landscape mode optimizations */
+    .container {
+        padding-top: 60px;
+    }
+}
+
+/* ================================================
+   PROGRESSIVE ENHANCEMENT
+   ================================================ */
+
+/* JavaScript disabled fallback */
+.no-js .hidden-no-js {
+    display: none;
+}
+
+.no-js .visible-no-js {
+    display: block;
+}
+
+/* Enhanced for JS users */
+.js-enabled {
+    /* Smooth scrolling for keyboard navigation */
+    scroll-behavior: smooth;
+}
+
+/* ================================================
+   UTILITY CLASSES
+   ================================================ */
+
+/* Responsive visibility */
+.show-mobile {
+    display: none;
+}
+
+.show-tablet {
+    display: none;
+}
+
+.show-desktop {
+    display: block;
+}
+
+@media screen and (max-width: 768px) {
+    .show-mobile {
+        display: block;
+    }
+    .hide-mobile {
+        display: none !important;
+    }
+    .show-desktop {
+        display: none;
+    }
+}
+
+@media screen and (min-width: 769px) and (max-width: 1024px) {
+    .show-tablet {
+        display: block;
+    }
+    .hide-tablet {
+        display: none !important;
+    }
+}
+
+@media screen and (min-width: 1025px) {
+    .hide-desktop {
+        display: none !important;
+    }
+}
+
+/* Text alignment utilities */
+.text-center {
+    text-align: center;
+}
+
+.text-left {
+    text-align: left;
+}
+
+.text-right {
+    text-align: right;
+}
+
+/* Flexbox utilities */
+.flex {
+    display: flex;
+}
+
+.flex-column {
+    flex-direction: column;
+}
+
+.justify-center {
+    justify-content: center;
+}
+
+.align-center {
+    align-items: center;
+}
+
+/* Spacing utilities */
+.mt-0 { margin-top: 0; }
+.mt-1 { margin-top: 8px; }
+.mt-2 { margin-top: 16px; }
+.mt-3 { margin-top: 24px; }
+.mt-4 { margin-top: 32px; }
+
+.mb-0 { margin-bottom: 0; }
+.mb-1 { margin-bottom: 8px; }
+.mb-2 { margin-bottom: 16px; }
+.mb-3 { margin-bottom: 24px; }
+.mb-4 { margin-bottom: 32px; }
+
+.p-0 { padding: 0; }
+.p-1 { padding: 8px; }
+.p-2 { padding: 16px; }
+.p-3 { padding: 24px; }
+.p-4 { padding: 32px; }

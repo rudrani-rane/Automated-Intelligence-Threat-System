@@ -168,29 +168,31 @@ function getInfernoColor(value) {
 fetch("/api/galaxy")
 .then(res => res.json())
 .then(data => {
-    asteroidData = data;
+    asteroidData = data.objects;  // Store full object data with names and URLs
     
     const geometry = new THREE.BufferGeometry();
-    const count = data.x.length;
+    const count = asteroidData.length;
     
     const positions = new Float32Array(count * 3);
     const colors = new Float32Array(count * 3);
     const sizes = new Float32Array(count);
     
     for (let i = 0; i < count; i++) {
+        const obj = asteroidData[i];
+        
         // Position (scaled for visualization)
-        positions[i * 3] = data.x[i] * 5;
-        positions[i * 3 + 1] = data.y[i] * 5;
-        positions[i * 3 + 2] = data.z[i] * 5;
+        positions[i * 3] = obj.x * 5;
+        positions[i * 3 + 1] = obj.y * 5;
+        positions[i * 3 + 2] = obj.z * 5;
         
         // Color based on threat score
-        const color = getInfernoColor(data.threat[i]);
+        const color = getInfernoColor(obj.threat);
         colors[i * 3] = color.r;
         colors[i * 3 + 1] = color.g;
         colors[i * 3 + 2] = color.b;
         
         // Size based on threat (larger = more dangerous)
-        sizes[i] = 0.05 + data.threat[i] * 0.15;
+        sizes[i] = 0.05 + obj.threat * 0.15;
     }
     
     geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
@@ -209,7 +211,7 @@ fetch("/api/galaxy")
     asteroidCloud = new THREE.Points(geometry, material);
     scene.add(asteroidCloud);
     
-    console.log(`✓ Loaded ${count} asteroids`);
+    console.log(`✓ Loaded ${count} asteroids with real names and JPL links`);
 })
 .catch(err => console.error("Error loading asteroid data:", err));
 
@@ -219,28 +221,30 @@ fetch("/api/galaxy")
 
 let liveAsteroids = null;
 
-function updateLiveAsteroids() {
-    fetch("/api/live")
-    .then(res => res.json())
-    .then(data => {
-        if (data.x && data.x.length > 0) {
-            // Remove old live asteroids
-            if (liveAsteroids) {
-                scene.remove(liveAsteroids);
-                liveAsteroids.geometry.dispose();
-                liveAsteroids.material.dispose();
-            }
-            
-            const geometry = new THREE.BufferGeometry();
-            const count = data.x.length;
+let liveAsteroidData = [];
+
+function updateLiveAsteroids(data) {
+    if (data && data.length > 0) {
+        liveAsteroidData = data;
+        
+        // Remove old live asteroids
+        if (liveAsteroids) {
+            scene.remove(liveAsteroids);
+            liveAsteroids.geometry.dispose();
+            liveAsteroids.material.dispose();
+        }
+        
+        const geometry = new THREE.BufferGeometry();
+            const count = data.objects.length;
             
             const positions = new Float32Array(count * 3);
             const colors = new Float32Array(count * 3);
             
             for (let i = 0; i < count; i++) {
-                positions[i * 3] = data.x[i] * 5;
-                positions[i * 3 + 1] = data.y[i] * 5;
-                positions[i * 3 + 2] = data.z[i] * 5;
+                const obj = data.objects[i];
+                positions[i * 3] = obj.x * 5;
+                positions[i * 3 + 1] = obj.y * 5;
+                positions[i * 3 + 2] = obj.z * 5;
                 
                 // Bright cyan for new detections
                 colors[i * 3] = 0;
@@ -262,15 +266,32 @@ function updateLiveAsteroids() {
             liveAsteroids = new THREE.Points(geometry, material);
             scene.add(liveAsteroids);
             
-            console.log(`✓ Live update: ${count} new asteroids`);
+            console.log(`✓ Live update: ${liveAsteroidData.length} new asteroids from WebSocket`);
         }
-    })
-    .catch(err => console.error("Live update error:", err));
 }
 
-// Update live asteroids every 30 seconds
-setInterval(updateLiveAsteroids, 30000);
-setTimeout(updateLiveAsteroids, 2000); // Initial update after 2s
+// Initial fetch of live data
+fetch("/api/live")
+    .then(res => res.json())
+    .then(data => {
+        if (data.objects && data.objects.length > 0) {
+            updateLiveAsteroids(data.objects);
+        }
+    })
+    .catch(err => console.error("Initial live data load error:", err));
+
+// WebSocket event handlers for real-time updates
+window.addEventListener('ws_connected', () => {
+    console.log('[Galaxy] WebSocket connected, subscribing to threat updates...');
+    wsClient.subscribe('threat_updates');
+});
+
+window.addEventListener('ws_threat_update', (event) => {
+    console.log('[Galaxy] Received threat update:', event.detail);
+    if (event.detail && event.detail.objects) {
+        updateLiveAsteroids(event.detail.objects);
+    }
+});
 
 // ============================================
 // RAYCASTING FOR HOVER INTERACTION
@@ -304,19 +325,25 @@ canvas.addEventListener('mousemove', (event) => {
         
         if (intersects.length > 0) {
             const index = intersects[0].index;
-            const threat = asteroidData.threat[index];
+            const obj = asteroidData[index];
+            
+            // Clean up asteroid name (remove extra spaces)
+            const cleanName = obj.name.trim();
             
             tooltip.innerHTML = `
-                <div class="tooltip-title">Asteroid Detection</div>
+                <div class="tooltip-title">
+                    <a href="${obj.url}" target="_blank" style="color: #00bfff; text-decoration: none;">
+                        ${cleanName} ↗
+                    </a>
+                </div>
                 <div class="tooltip-data">
-                    Index: ${index}<br>
-                    Position: (${asteroidData.x[index].toFixed(2)}, 
-                               ${asteroidData.y[index].toFixed(2)}, 
-                               ${asteroidData.z[index].toFixed(2)})<br>
-                    Threat Score: ${(threat * 100).toFixed(1)}%<br>
-                    Status: ${threat > 0.7 ? '<span style="color:#ff0000">HIGH RISK</span>' : 
-                              threat > 0.4 ? '<span style="color:#ffa500">MODERATE</span>' : 
-                              '<span style="color:#00ff7f">LOW RISK</span>'}
+                    SPKID: ${obj.spkid}<br>
+                    Position: (${obj.x.toFixed(2)}, ${obj.y.toFixed(2)}, ${obj.z.toFixed(2)})<br>
+                    Threat Score: ${(obj.threat * 100).toFixed(1)}%<br>
+                    Status: ${obj.threat > 0.7 ? '<span style="color:#ff0000">HIGH RISK</span>' : 
+                              obj.threat > 0.4 ? '<span style="color:#ffa500">MODERATE</span>' : 
+                              '<span style="color:#00ff7f">LOW RISK</span>'}<br>
+                    <small style="color: #888; margin-top: 4px; display: block;">Click name to view on NASA JPL</small>
                 </div>
             `;
             tooltip.style.left = event.clientX + 15 + 'px';

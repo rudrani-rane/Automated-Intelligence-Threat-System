@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Dashboard - ATIS</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+</head>
+<body>
+    <header>
+        <h1>👤 User Dashboard</h1>
+        <p>Personalized asteroid monitoring and alerts</p>
+        <nav style="margin-top: 1rem;">
+            <a href="/" style="color: var(--electric-blue); text-decoration: none; margin: 0 1rem;">← Home</a>
+            <span id="userGreeting" style="color: var(--magenta); margin: 0 1rem;"></span>
+            <button onclick="logout()" style="padding: 0.5rem 1rem; background: var(--danger); color: white; border: none; border-radius: 4px; cursor: pointer;">Logout</button>
+        </nav>
+    </header>
+
+    <main style="padding: 2rem;">
+        <!-- Login/Register Section (shown when not authenticated) -->
+        <div id="authSection" style="max-width: 500px; margin: 0 auto;">
+            <div class="card" style="margin-bottom: 2rem;">
+                <h2>Welcome to ATIS</h2>
+                <p>Please login or register to access personalized features</p>
+                
+                <!-- Login Form -->
+                <div id="loginForm" style="margin-top: 2rem;">
+                    <h3 style="color: var(--electric-blue); margin-bottom: 1rem;">Login</h3>
+                    <form onsubmit="handleLogin(event)">
+                        <div style="margin-bottom: 1rem;">
+                            <label style="display: block; margin-bottom: 0.5rem;">Email:</label>
+                            <input type="email" id="loginEmail" required
+                                   style="width: 100%; padding: 0.75rem; background: rgba(0, 0, 0, 0.5); border: 1px solid rgba(0, 212, 255, 0.3); border-radius: 4px; color: white;">
+                        </div>
+                        <div style="margin-bottom: 1rem;">
+                            <label style="display: block; margin-bottom: 0.5rem;">Password:</label>
+                            <input type="password" id="loginPassword" required
+                                   style="width: 100%; padding: 0.75rem; background: rgba(0, 0, 0, 0.5); border: 1px solid rgba(0, 212, 255, 0.3); border-radius: 4px; color: white;">
+                        </div>
+                        <button type="submit" style="width: 100%; padding: 0.75rem; background: var(--electric-blue); color: var(--deep-space); border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">
+                            Login
+                        </button>
+                    </form>
+                    
+                    <p style="margin-top: 1rem; text-align: center;">
+                        Don't have an account? 
+                        <a href="#" onclick="showRegister(); return false;" style="color: var(--electric-blue);">Register here</a>
+                    </p>
+                </div>
+                
+                <!-- Register Form (hidden by default) -->
+                <div id="registerForm" style="margin-top: 2rem; display: none;">
+                    <h3 style="color: var(--magenta); margin-bottom: 1rem;">Register</h3>
+                    <form onsubmit="handleRegister(event)">
+                        <div style="margin-bottom: 1rem;">
+                            <label style="display: block; margin-bottom: 0.5rem;">Email:</label>
+                            <input type="email" id="registerEmail" required
+                                   style="width: 100%; padding: 0.75rem; background: rgba(0, 0, 0, 0.5); border: 1px solid rgba(255, 0, 255, 0.3); border-radius: 4px; color: white;">
+                        </div>
+                        <div style="margin-bottom: 1rem;">
+                            <label style="display: block; margin-bottom: 0.5rem;">Username:</label>
+                            <input type="text" id="registerUsername" required
+                                   style="width: 100%; padding: 0.75rem; background: rgba(0, 0, 0, 0.5); border: 1px solid rgba(255, 0, 255, 0.3); border-radius: 4px; color: white;">
+                        </div>
+                        <div style="margin-bottom: 1rem;">
+                            <label style="display: block; margin-bottom: 0.5rem;">Full Name (optional):</label>
+                            <input type="text" id="registerFullName"
+                                   style="width: 100%; padding: 0.75rem; background: rgba(0, 0, 0, 0.5); border: 1px solid rgba(255, 0, 255, 0.3); border-radius: 4px; color: white;">
+                        </div>
+                        <div style="margin-bottom: 1rem;">
+                            <label style="display: block; margin-bottom: 0.5rem;">Password (min 8 chars, 1 uppercase, 1 lowercase, 1 digit):</label>
+                            <input type="password" id="registerPassword" required
+                                   style="width: 100%; padding: 0.75rem; background: rgba(0, 0, 0, 0.5); border: 1px solid rgba(255, 0, 255, 0.3); border-radius: 4px; color: white;">
+                        </div>
+                        <button type="submit" style="width: 100%; padding: 0.75rem; background: var(--magenta); color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">
+                            Register
+                        </button>
+                    </form>
+                    
+                    <p style="margin-top: 1rem; text-align: center;">
+                        Already have an account? 
+                        <a href="#" onclick="showLogin(); return false;" style="color: var(--magenta);">Login here</a>
+                    </p>
+                </div>
+                
+                <div id="authMessage" style="margin-top: 1rem; padding: 1rem; border-radius: 4px; display: none;"></div>
+            </div>
+        </div>
+
+        <!-- Dashboard Content (shown when authenticated) -->
+        <div id="dashboardContent" style="display: none;">
+            <!-- Personal Watchlist -->
+            <div class="section" style="margin-bottom: 3rem;">
+                <div class="card-header">
+                    <h2 class="card-title">📌 Personal Watchlist</h2>
+                    <div style="color: rgba(255, 255, 255, 0.6);" id="watchlistCount">0 asteroids</div>
+                </div>
+                
+                <div id="personalWatchlist" style="margin-top: 1.5rem;">
+                    <p style="color: rgba(255, 255, 255, 0.5);">Loading watchlist...</p>
+                </div>
+            </div>
+
+            <!-- Alert Settings -->
+            <div class="section" style="margin-bottom: 3rem;">
+                <h2>🔔 Alert Settings</h2>
+                <div class="card" style="margin-top: 1.5rem; padding: 2rem;">
+                    <form onsubmit="updateAlertSettings(event)">
+                        <div style="margin-bottom: 1.5rem;">
+                            <label style="display: flex; align-items: center; cursor: pointer;">
+                                <input type="checkbox" id="emailEnabled" style="margin-right: 0.5rem;">
+                                <span>Enable email notifications</span>
+                            </label>
+                        </div>
+                        
+                        <div style="margin-bottom: 1.5rem;">
+                            <label style="display: flex; align-items: center; cursor: pointer;">
+                                <input type="checkbox" id="notifyNewDetections" style="margin-right: 0.5rem;">
+                                <span>Notify me of new high-priority detections</span>
+                            </label>
+                        </div>
+                        
+                        <div style="margin-bottom: 1.5rem;">
+                            <label style="display: block; margin-bottom: 0.5rem;">Minimum threat score for alerts:</label>
+                            <input type="range" id="minThreatScore" min="0" max="1" step="0.1" value="0.7" 
+                                   style="width: 100%;" oninput="document.getElementById('threatScoreValue').textContent = (this.value * 100).toFixed(0) + '%'">
+                            <div style="text-align: center; margin-top: 0.5rem; color: var(--electric-blue); font-weight: bold;">
+                                <span id="threatScoreValue">70%</span>
+                            </div>
+                        </div>
+                        
+                        <button type="submit" style="padding: 0.75rem 2rem; background: var(--electric-blue); color: var(--deep-space); border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">
+                            Save Alert Settings
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- User Statistics -->
+            <div class="section">
+                <h2>📊 Your Statistics</h2>
+                <div class="stat-container" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem; margin-top: 1.5rem;">
+                    <div class="stat-card">
+                        <div class="stat-label">Account Created</div>
+                        <div class="stat-value" id="accountCreated">--</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Last Login</div>
+                        <div class="stat-value" id="lastLogin">--</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Watchlist Size</div>
+                        <div class="stat-value" id="watchlistSize">--</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="/static/js/user_dashboard.js"></script>
+</body>
+</html>
