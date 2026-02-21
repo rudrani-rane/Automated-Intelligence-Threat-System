@@ -23,11 +23,10 @@ class ModelExplainer:
     def __init__(self, model_path: str = "outputs/best_model.pth", device: str = "cpu"):
         self.device = device
         self.model = ATISGNN(
-            node_features=12,
-            edge_features=3,
-            hidden_dim=64,
-            num_layers=3,
-            dropout=0.1
+            in_channels=17,
+            hidden_channels=64,
+            latent_dim=32,
+            heads=4
         ).to(device)
         
         # Load trained model

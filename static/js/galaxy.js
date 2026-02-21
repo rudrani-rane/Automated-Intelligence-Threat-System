@@ -200,10 +200,10 @@ fetch("/api/galaxy")
     geometry.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
     
     const material = new THREE.PointsMaterial({
-        size: 0.1,
+        size: 0.15,  // Increased from 0.1 for better visibility
         vertexColors: true,
         transparent: true,
-        opacity: 0.85,
+        opacity: 0.9,  // Increased from 0.85
         sizeAttenuation: true,
         blending: THREE.AdditiveBlending
     });
@@ -211,7 +211,9 @@ fetch("/api/galaxy")
     asteroidCloud = new THREE.Points(geometry, material);
     scene.add(asteroidCloud);
     
-    console.log(`✓ Loaded ${count} asteroids with real names and JPL links`);
+    console.log(`✓ Loaded ${count} real NASA asteroids from JPL SBDB`);
+    console.log(`  Each point represents one asteroid with real orbital data`);
+    console.log(`  Hover over any point to see asteroid details and JPL link`);
 })
 .catch(err => console.error("Error loading asteroid data:", err));
 

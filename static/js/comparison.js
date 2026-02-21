@@ -65,7 +65,7 @@ function setupSearch(inputId, resultsId, slot) {
 
 async function selectAsteroid(spkid, slot) {
     try {
-        const res = await fetch(`/api/asteroids/${spkid}`);
+        const res = await fetch(`/api/asteroid/${spkid}`);
         const asteroid = await res.json();
         
         if (slot === 'A') {

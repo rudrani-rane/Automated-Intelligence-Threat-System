@@ -176,7 +176,7 @@ searchInput.addEventListener('input', async (e) => {
 
 async function selectAsteroid(spkid) {
     try {
-        const res = await fetch(`/api/asteroids/${spkid}`);
+        const res = await fetch(`/api/asteroid/${spkid}`);
         selectedAsteroid = await res.json();
         
         searchInput.value = selectedAsteroid.name || `SPKID ${selectedAsteroid.spkid}`;

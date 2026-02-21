@@ -131,6 +131,62 @@ def system_stats():
         "live_updates_active": LIVE_POINTS["mu"] is not None
     }
 
+@router.get("/asteroids")
+def get_all_asteroids():
+    """Get all asteroids with full details for analytics dashboard"""
+    import pandas as pd
+    
+    # Load processed data
+    df = pd.read_csv("data/processed/processed_asteroids.csv")
+    
+    # Create list of all asteroids with names and threat scores
+    asteroids = []
+    for i in range(len(SPKIDS)):
+        spkid = int(SPKIDS[i])
+        
+        # Get row from dataframe
+        try:
+            row = df[df['spkid'] == spkid].iloc[0]
+            
+            asteroids.append({
+                "spkid": spkid,
+                "name": get_asteroid_name(spkid),
+                "url": get_jpl_url(spkid),
+                "threat": float(THREAT[i]),
+                "moid": float(MOID[i]),
+                "neo": bool(row.get('neo', 0)),
+                "pha": bool(row.get('pha', 0)),
+                "H": float(row.get('H', 0)),  # Absolute magnitude
+                "e": float(row.get('e', 0)),  # Eccentricity
+                "a": float(row.get('a', 0)),  # Semi-major axis
+                "i": float(row.get('i', 0)),  # Inclination
+                "q": float(row.get('q', 0)),  # Perihelion distance
+                "ad": float(row.get('ad', 0)),  # Aphelion distance
+                "per_y": float(row.get('per_y', 0)),  # Orbital period (years)
+                "data_arc": float(row.get('data_arc', 0))  # Observation arc (days)
+            })
+        except (IndexError, KeyError):
+            # Fallback if data not in CSV
+            asteroids.append({
+                "spkid": spkid,
+                "name": get_asteroid_name(spkid),
+                "url": get_jpl_url(spkid),
+                "threat": float(THREAT[i]),
+                "moid": float(MOID[i]),
+                "neo": False,
+                "pha": False,
+                "H": 0,
+                "e": 0,
+                "a": 0,
+                "i": 0,
+                "q": 0,
+                "ad": 0,
+                "per_y": 0,
+                "data_arc": 0
+            })
+    
+    return asteroids
+
 @router.get("/asteroid/{asteroid_id}")
 def asteroid_details(asteroid_id: str):
     """Detailed information for a specific asteroid"""

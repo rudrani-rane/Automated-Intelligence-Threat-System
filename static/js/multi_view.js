@@ -377,7 +377,7 @@ searchInput.addEventListener('input', async (e) => {
 
 async function loadAsteroid(spkid) {
     try {
-        const res = await fetch(`/api/asteroids/${spkid}`);
+        const res = await fetch(`/api/asteroid/${spkid}`);
         const asteroid = await res.json();
         
         selectedAsteroid = asteroid;

@@ -31,11 +31,10 @@ class EnsemblePredictor:
         
         # Load GNN model
         self.gnn_model = ATISGNN(
-            node_features=12,
-            edge_features=3,
-            hidden_dim=64,
-            num_layers=3,
-            dropout=0.1
+            in_channels=17,
+            hidden_channels=64,
+            latent_dim=32,
+            heads=4
         ).to(device)
         
         try:

@@ -12,7 +12,7 @@
 
 ---
 
-## 🚀 Features
+## Features
 
 ### Core Technologies
 - **Graph Neural Network (ATISGNN)** - PyTorch Geometric-based threat prediction
@@ -24,26 +24,26 @@
 - **12,056 Real Asteroids** - NASA JPL Small-Body Database
 
 ### Visualization Dashboards (20+ Pages)
-1. **🌌 3D Galaxy View** - WebGL orbital space visualization (Three.js)
-2. **📡 Earth Proximity Radar** - MOID vs threat scatter plot  
-3. **⚠️ Threat Watchlist** - Real-time WebSocket updates
-4. **🛸 Trajectory Detection** - AI orbital path forecasting
-5. **🪐 Orbital Simulator** - Real Keplerian mechanics with 3D paths
-6. **⏰ Time Machine** - Historical position viewer (any date/time)
-7. **📊 Analytics Dashboard** - 10+ statistical charts and histograms
-8. **📺 Multi-View** - 4-panel synchronized visualization
-9. **🎯 Approach Corridor** - 3D uncertainty tube during Earth flyby
-10. **💥 Impact Simulation** - Ground track & damage zones on 3D Earth
-11. **🔍 Comparison Tool** - Side-by-side asteroid analysis (up to 3)
-12. **📅 Historical Timeline** - Close approaches 1900-2100 (200 years)
-13. **🤖 ML Dashboard** - Model performance, ROC/PR curves, explainability
-14. **👤 User Dashboard** - Personal watchlists, alerts, preferences
-15. **🧪 Orbital Mechanics** - Kepler solver, velocity calculations
-16. **🌍 Impact Calculator** - Crater size, damage radii, energy (TNT equivalent)
-17. **🔭 N-Body Simulation** - Gravitational perturbations (Jupiter, Saturn, Earth)
-18. **🚨 Alert Dashboard** - Real-time threat monitoring with notifications
-19. **📈 Trend Analysis** - Historical threat tracking (30 days)
-20. **📥 Data Export** - CSV/JSON analytics export
+1. **3D Galaxy View** - WebGL orbital space visualization (Three.js)
+2. **Earth Proximity Radar** - MOID vs threat scatter plot  
+3. **Threat Watchlist** - Real-time WebSocket updates
+4. **Trajectory Detection** - AI orbital path forecasting
+5. **Orbital Simulator** - Real Keplerian mechanics with 3D paths
+6. **Time Machine** - Historical position viewer (any date/time)
+7. **Analytics Dashboard** - 10+ statistical charts and histograms
+8. **Multi-View** - 4-panel synchronized visualization
+9. **Approach Corridor** - 3D uncertainty tube during Earth flyby
+10. **Impact Simulation** - Ground track & damage zones on 3D Earth
+11. **Comparison Tool** - Side-by-side asteroid analysis (up to 3)
+12. **Historical Timeline** - Close approaches 1900-2100 (200 years)
+13. **ML Dashboard** - Model performance, ROC/PR curves, explainability
+14. **User Dashboard** - Personal watchlists, alerts, preferences
+15. **Orbital Mechanics** - Kepler solver, velocity calculations
+16. **Impact Calculator** - Crater size, damage radii, energy (TNT equivalent)
+17. **N-Body Simulation** - Gravitational perturbations (Jupiter, Saturn, Earth)
+18. **Alert Dashboard** - Real-time threat monitoring with notifications
+19. **Trend Analysis** - Historical threat tracking (30 days)
+20. **Data Export** - CSV/JSON analytics export
 
 ### Real-Time Features (NEW in v3.0)
 - **WebSocket Connection** - Instant threat updates, no polling
@@ -92,14 +92,6 @@
 - **Push Notifications** - Native notifications support
 - **Responsive Design** - Mobile-first, touch-optimized UI
 
-### Accessibility & Mobile (NEW in v3.0)
-- **WCAG Compliance** - ARIA roles, keyboard navigation
-- **Screen Reader Support** - Semantic HTML, alt texts
-- **High Contrast Mode** - Supports prefers-contrast
-- **Reduced Motion** - Respects prefers-reduced-motion
-- **Touch Optimized** - 44px touch targets, gestures
-- **Responsive Breakpoints** - Mobile (768px), Tablet (1024px), Desktop
-
 ### Production Infrastructure (NEW in v3.0)
 - **Docker Compose** - 6-service architecture
 - **PostgreSQL** - User data, watchlists, audit logs
@@ -138,19 +130,6 @@ source venv/bin/activate
 ```bash
 pip install -r requirements.txt
 ```
-
-**Key Dependencies:**
-- `fastapi==0.129.0` - Web framework
-- `uvicorn==0.41.0` - ASGI server
-- `torch==2.10.0` - Deep learning
-- `torch-geometric==2.7.0` - Graph neural networks
-- `pandas==2.3.3` - Data processing
-- `numpy==2.2.6` - Numerical computing
-- `plotly==6.5.2` - Interactive charts
-- `httpx==0.28.1` - Async HTTP client
-- `scikit-learn==1.7.2` - ML utilities
-- `PyJWT==2.8.0` - Authentication
-- `passlib[bcrypt]==1.7.4` - Password hashing
 
 ### Step 4: Prepare Data
 Ensure the following files exist:
@@ -204,81 +183,6 @@ Open browser to: `http://localhost:8000`
 - `GET /api/auth/watchlist` - Get user watchlist
 - `PUT /api/auth/preferences` - Update preferences
 - `PUT /api/auth/alert-settings` - Update alert settings
-
----
-
-## 🗂️ Project Structure
-
-```
-Automated Intelligence Threat System/
-├── data/
-│   ├── processed/
-│   │   └── processed_asteroids.csv      # 12,056 asteroids with features
-│   ├── raw/
-│   │   └── sbdb_query_results.csv       # Original JPL data
-│   └── users.json                        # User accounts (created on first registration)
-├── outputs/
-│   ├── best_model.pth                    # Trained GNN weights
-│   ├── watchlist.csv                     # Global threat watchlist
-│   └── figures/                          # Generated visualizations
-├── src/
-│   ├── data/
-│   │   ├── load_data.py                  # Dataset loader
-│   │   └── preprocess.py                 # Feature engineering
-│   ├── models/
-│   │   ├── gnn_model.py                  # ATISGNN architecture
-│   │   ├── train.py                      # Training pipeline
-│   │   ├── test_model.py                 # Evaluation
-│   │   ├── explainability.py             # SHAP, feature importance
-│   │   ├── ensemble_predictor.py         # Ensemble system
-│   │   └── anomaly_detector.py           # Anomaly detection
-│   ├── utils/
-│   │   ├── orbital_mechanics.py          # Kepler solver, paths
-│   │   ├── impact_calculator.py          # Damage assessment
-│   │   ├── multi_source_data.py          # NASA API integration
-│   │   ├── nbody_simulation.py           # Gravitational sim
-│   │   └── visualization.py              # Plot utilities
-│   ├── web/
-│   │   ├── main.py                       # FastAPI app (17 routes)
-│   │   ├── api.py                        # 30+ API endpoints
-│   │   ├── auth.py                       # JWT authentication
-│   │   ├── state.py                      # Global state management
-│   │   ├── sbdb_client.py                # JPL API client
-│   │   └── live_updater.py               # Background updater
-│   ├── graph/
-│   │   └── graph_builder.py              # Graph construction
-│   ├── risk/
-│   │   └── threat_engine.py              # Threat scoring
-│   └── dashboard/
-│       ├── app.py                        # Dash dashboard
-│       └── visuals.py                    # Dashboard components
-├── templates/                             # HTML pages (17 files)
-│   ├── index.html                        # Homepage
-│   ├── galaxy.html                       # 3D visualization
-│   ├── radar.html                        # Proximity radar
-│   ├── watchlist.html                    # Threat list
-│   ├── multi_view.html                   # Multi-panel view
-│   ├── ml_dashboard.html                 # ML performance
-│   ├── user_dashboard.html               # User account
-│   └── ...
-├── static/
-│   ├── css/
-│   │   └── style.css                     # 900+ lines, mission control theme
-│   ├── js/                               # JavaScript (17 files, 8000+ lines)
-│   │   ├── galaxy.js                     # Three.js 3D rendering
-│   │   ├── watchlist.js                  # Live updates
-│   │   ├── ml_dashboard.js               # ML visualizations
-│   │   ├── user_dashboard.js             # Authentication
-│   │   └── ...
-├── docs/
-│   ├── product_requirements_document.md  # PRD
-│   ├── tech_stack_document.md            # Architecture
-│   └── design_system.md                  # UI/UX guidelines
-├── architecture/
-│   └── architecture-diagram.xml          # Draw.io diagram
-├── requirements.txt                      # Python dependencies (70+ packages)
-└── README.md                             # This file
-```
 
 ---
 
@@ -339,78 +243,6 @@ z = (x - μ) / σ
 s(x, n) = 2^(-E(h(x))/c(n))
 ```
 
----
-
-## 🧪 Usage Examples
-
-### Example 1: Query Asteroid Details
-```python
-import requests
-
-response = requests.get('http://localhost:8000/api/asteroid/433')  # Eros
-data = response.json()
-
-print(f"Name: {data['name']}")
-print(f"Threat Score: {data['threat_score']:.2%}")
-print(f"MOID: {data['moid']:.4f} AU")
-```
-
-### Example 2: Get Orbital Path
-```python
-response = requests.get('http://localhost:8000/api/orbital-path/433?num_points=200')
-path_data = response.json()
-
-positions = path_data['path']  # List of {x, y, z} coordinates
-# Plot with matplotlib or Three.js
-```
-
-### Example 3: Run N-Body Simulation
-```python
-response = requests.get('http://localhost:8000/api/nbody-simulation/433?duration_days=365')
-sim_data = response.json()
-
-trajectory = sim_data['trajectory']  # Asteroid positions over 1 year
-perturbations = sim_data['perturbations']  # Deviation from Keplerian orbit
-```
-
-### Example 4: User Authentication
-```python
-# Register
-register_data = {
-    "email": "user@example.com",
-    "username": "astro_user",
-    "password": "SecurePass123",
-    "full_name": "Asteroid Hunter"
-}
-response = requests.post('http://localhost:8000/api/auth/register', json=register_data)
-
-# Login
-login_data = {"email": "user@example.com", "password": "SecurePass123"}
-response = requests.post('http://localhost:8000/api/auth/login', json=login_data)
-token = response.json()['access_token']
-
-# Add to watchlist (with auth)
-headers = {'Authorization': f'Bearer {token}'}
-requests.post('http://localhost:8000/api/auth/watchlist/433', headers=headers)
-```
-
-### Example 5: ML Explainability
-```python
-response = requests.get('http://localhost:8000/api/ml-explain/433')
-explanation = response.json()
-
-print(explanation['explanation_text'])
-
-# Feature importance
-for feature in explanation['top_influential_features']:
-    print(f"{feature['feature']}: {feature['importance']:.2f}%")
-
-# SHAP values
-shap_values = explanation['shap_values']
-# Visualize with bar chart
-```
-
----
 
 ## 📊 Model Architecture
 
@@ -522,32 +354,6 @@ Input: Node Features (12D) + Edge Features (3D)
 
 ---
 
-## 📝 API Documentation
-
-Interactive API documentation available at:
-- **Swagger UI:** `http://localhost:8000/docs`
-- **ReDoc:** `http://localhost:8000/redoc`
-
----
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit changes (`git commit -m 'Add amazing feature'`)
-4. Push to branch (`git push origin feature/amazing-feature`)
-5. Open Pull Request
-
-**Code Style:**
-- PEP 8 for Python
-- ESLint for JavaScript
-- 4-space indentation
-- Type hints for Python functions
-
----
-
-## 🆕 What's New in v3.0
-
 ### Real-Time WebSocket System
 - **Bidirectional Communication**: Instant threat updates via WebSocket
 - **Topic Subscriptions**: threat_updates, watchlist, alerts, system_status
@@ -591,24 +397,6 @@ Interactive API documentation available at:
 - **Nginx Reverse Proxy**: Load balancing, SSL termination
 - **Prometheus + Grafana**: Real-time monitoring and dashboards
 - **CI/CD Pipeline**: GitHub Actions with automated testing and deployment
-
-### New API Endpoints (40+ Total)
-```
-/api/ws                        # WebSocket real-time connection
-/api/ws/stats                  # Connection statistics
-/api/alerts/history            # Alert history with pagination
-/api/alerts/stats              # Alert counts by severity
-/api/analytics/statistics      # System-wide metrics
-/api/analytics/trends/{spkid}  # Per-object trend analysis
-/api/analytics/movers          # Top threat changes
-/api/analytics/timeseries      # Chart data for visualizations
-/api/analytics/export/csv      # CSV data export
-/api/analytics/export/json     # JSON data export
-/api/auth/register             # User registration
-/api/auth/login                # JWT authentication
-/api/user/profile              # User profile management
-/api/user/alert-settings       # Customizable alert preferences
-```
 
 ---
 
@@ -703,14 +491,6 @@ flake8 src/
 mypy src/
 ```
 
-### Contributing
-We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for:
-- Development setup
-- Coding standards
-- Pull request process
-- Issue guidelines
-
----
 
 ## 📚 Documentation
 
@@ -740,13 +520,6 @@ We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for:
 - **CORS Policy**: Configurable origin restrictions
 - **Audit Logging**: All actions logged to database
 
-### Reporting Vulnerabilities
-Please report security vulnerabilities to: security@atis.local
-
-Do not open public issues for security vulnerabilities.
-
----
-
 ## 📈 Roadmap
 
 ### Upcoming Features
@@ -769,8 +542,6 @@ MIT License - see [LICENSE](LICENSE) file for details.
 
 ---
 
-## 🙏 Acknowledgments
-
 ### Data Sources
 - **NASA JPL**: Small-Body Database (SBDB), Close Approach Data (CAD), Sentry Impact Risk
 - **CNEOS**: Center for Near-Earth Object Studies
@@ -785,21 +556,7 @@ MIT License - see [LICENSE](LICENSE) file for details.
 - **Docker**: Containerization platform
 - **PostgreSQL**: Relational database
 - **Redis**: In-memory cache
-
-### Community
-Special thanks to all contributors who help make ATIS better!
-
----
-
-## 📞 Contact & Support
-
-- **Documentation**: [Full API Docs](docs/API.md)
-- **Contributing**: [Contribution Guidelines](CONTRIBUTING.md)
-- **Deployment**: [Production Guide](DEPLOYMENT.md)
-- **Issues**: GitHub Issues for bug reports
-- **Email**: support@atis.local
-
----
+r!
 
 ## 📈 Statistics
 
@@ -818,10 +575,6 @@ Special thanks to all contributors who help make ATIS better!
 ---
 
 <div align="center">
-
-![ATIS Logo](static/icons/icon-192x192.png)
-
-**Built with ❤️ for Planetary Defense**
 
 *"The dinosaurs didn't have a space program. We do."*
 
