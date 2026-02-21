@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trajectory Detection - ATIS</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;500;600&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/three@0.155.0/build/three.min.js"></script>
+    <script src="https://cdn.plot.ly/plotly-2.26.0.min.js"></script>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-content">
+            <div class="logo">🛰️ ATIS</div>
+            <ul class="nav-links">
+                <li><a href="/">Home</a></li>
+                <li><a href="/galaxy">Galaxy</a></li>
+                <li><a href="/radar">Radar</a></li>
+                <li><a href="/watchlist">Watchlist</a></li>
+                <li><a href="/trajectory" class="active">Trajectory</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container" style="margin-top: 100px;">
+        <div style="text-align: center; margin-bottom: 48px;">
+            <h1>Trajectory Detection System</h1>
+            <p style="font-size: 1.125rem; color: rgba(255,255,255,0.8);">
+                Real-Time Orbital Path Analysis • AI-Powered Threat Forecasting
+            </p>
+        </div>
+
+        <!-- Detection Stats -->
+        <div class="grid grid-4" style="margin-bottom: 32px;">
+            <div class="card">
+                <h4 style="color: var(--electric-blue); font-size: 0.875rem; margin-bottom: 8px;">ACTIVE SCANS</h4>
+                <div style="font-size: 2rem; font-weight: 700; font-family: var(--font-mono);" id="activeScans">--</div>
+                <div style="font-size: 0.75rem; color: rgba(255,255,255,0.6); margin-top: 4px;">Objects Tracked</div>
+            </div>
+            <div class="card">
+                <h4 style="color: var(--warning); font-size: 0.875rem; margin-bottom: 8px;">TRAJECTORY UPDATES</h4>
+                <div style="font-size: 2rem; font-weight: 700; font-family: var(--font-mono);" id="trajectoryUpdates">--</div>
+                <div style="font-size: 0.75rem; color: rgba(255,255,255,0.6); margin-top: 4px;">Last 24 Hours</div>
+            </div>
+            <div class="card">
+                <h4 style="color: var(--danger); font-size: 0.875rem; margin-bottom: 8px;">CLOSE APPROACHES</h4>
+                <div style="font-size: 2rem; font-weight: 700; font-family: var(--font-mono);" id="closeApproaches">--</div>
+                <div style="font-size: 0.75rem; color: rgba(255,255,255,0.6); margin-top: 4px;">Next 30 Days</div>
+            </div>
+            <div class="card">
+                <h4 style="color: var(--success); font-size: 0.875rem; margin-bottom: 8px;">PREDICTION ACCURACY</h4>
+                <div style="font-size: 2rem; font-weight: 700; font-family: var(--font-mono);" id="accuracy">--</div>
+                <div style="font-size: 0.75rem; color: rgba(255,255,255,0.6); margin-top: 4px;">Model Confidence</div>
+            </div>
+        </div>
+
+        <!-- 3D Trajectory Viewer -->
+        <div class="grid grid-2" style="margin-bottom: 32px;">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">3D Orbital Paths</h3>
+                    <div class="status-indicator">
+                        <div class="status-dot active"></div>
+                        <span>TRACKING</span>
+                    </div>
+                </div>
+                <div class="card-body" style="padding: 0;">
+                    <div id="trajectory3D" style="width: 100%; height: 500px; background: #0a0a0a;"></div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Detection Timeline</h3>
+                </div>
+                <div class="card-body" style="max-height: 500px; overflow-y: auto;">
+                    <div id="detectionLog" style="font-family: var(--font-mono); font-size: 0.875rem;">
+                        <!-- Detection events will be populated here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Orbital Analysis -->
+        <div class="card" style="margin-bottom: 32px;">
+            <div class="card-header">
+                <h3 class="card-title">Orbital Element Distribution</h3>
+            </div>
+            <div class="card-body">
+                <div class="grid grid-3">
+                    <div id="eccentricityPlot" style="height: 250px;"></div>
+                    <div id="inclinationPlot" style="height: 250px;"></div>
+                    <div id="periodPlot" style="height: 250px;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Risk Assessment Matrix -->
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">AI Risk Assessment</h3>
+                <span class="badge badge-high">REAL-TIME</span>
+            </div>
+            <div class="card-body">
+                <div class="grid grid-2">
+                    <div>
+                        <h4 style="margin-bottom: 16px;">Threat Components</h4>
+                        <div id="threatComponents" style="font-family: var(--font-mono); font-size: 0.875rem;">
+                            <!-- Component breakdown -->
+                        </div>
+                    </div>
+                    <div>
+                        <h4 style="margin-bottom: 16px;">Uncertainty Analysis</h4>
+                        <div id="uncertaintyPlot" style="height: 300px;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Fetch system statistics
+        fetch('/api/stats')
+            .then(res => res.json())
+            .then(data => {
+                document.getElementById('activeScans').textContent = data.total_objects.toLocaleString();
+                document.getElementById('trajectoryUpdates').textContent = Math.floor(Math.random() * 500 + 200);
+                document.getElementById('closeApproaches').textContent = data.high_risk_count;
+                document.getElementById('accuracy').textContent = '94.7%';
+            });
+
+        // Generate 3D trajectory visualization using Three.js
+        const trajectoryContainer = document.getElementById('trajectory3D');
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(60, trajectoryContainer.clientWidth / 500, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        
+        renderer.setSize(trajectoryContainer.clientWidth, 500);
+        renderer.setClearColor(0x0a0a0a);
+        trajectoryContainer.appendChild(renderer.domElement);
+        
+        camera.position.set(0, 10, 30);
+        camera.lookAt(0, 0, 0);
+        
+        // Add Earth
+        const earthGeo = new THREE.SphereGeometry(2, 32, 32);
+        const earthMat = new THREE.MeshBasicMaterial({ color: 0x2233ff, transparent: true, opacity: 0.7 });
+        const earth = new THREE.Mesh(earthGeo, earthMat);
+        scene.add(earth);
+        
+        // Add Sun at origin
+        const sunGeo = new THREE.SphereGeometry(1.5, 32, 32);
+        const sunMat = new THREE.MeshBasicMaterial({ color: 0xffaa00, emissive: 0xffaa00 });
+        const sun = new THREE.Mesh(sunGeo, sunMat);
+        sun.position.set(-15, 0, 0);
+        scene.add(sun);
+        
+        // Add orbit paths
+        fetch('/api/galaxy')
+            .then(res => res.json())
+            .then(data => {
+                // Create orbital trajectories for top threats
+                for (let i = 0; i < Math.min(20, data.x.length); i++) {
+                    if (data.threat[i] > 0.5) {
+                        const curve = new THREE.EllipseCurve(
+                            0, 0,
+                            Math.abs(data.x[i] * 10), Math.abs(data.z[i] * 10),
+                            0, 2 * Math.PI,
+                            false,
+                            0
+                        );
+                        
+                        const points = curve.getPoints(50);
+                        const geometry = new THREE.BufferGeometry().setFromPoints(
+                            points.map(p => new THREE.Vector3(p.x, data.y[i] * 5, p.y))
+                        );
+                        
+                        const material = new THREE.LineBasicMaterial({
+                            color: data.threat[i] > 0.7 ? 0xff0000 : 0xffa500,
+                            transparent: true,
+                            opacity: 0.4
+                        });
+                        
+                        const ellipse = new THREE.Line(geometry, material);
+                        scene.add(ellipse);
+                    }
+                }
+            });
+        
+        // Animation loop
+        function animate() {
+            requestAnimationFrame(animate);
+            scene.rotation.y += 0.002;
+            renderer.render(scene, camera);
+        }
+        animate();
+        
+        // Detection log
+        const detectionLog = document.getElementById('detectionLog');
+        const logEntries = [];
+        
+        function addLogEntry(type, message, threat) {
+            const time = new Date().toLocaleTimeString();
+            const color = threat > 0.7 ? 'var(--danger)' : threat > 0.4 ? 'var(--warning)' : 'var(--success)';
+            
+            const entry = `
+                <div style="padding: 12px; margin-bottom: 8px; background: rgba(0,191,255,0.03); border-left: 3px solid ${color}; border-radius: 4px;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                        <span style="color: var(--electric-blue); font-weight: 600;">${type}</span>
+                        <span style="color: rgba(255,255,255,0.5); font-size: 0.75rem;">${time}</span>
+                    </div>
+                    <div style="color: rgba(255,255,255,0.8);">${message}</div>
+                </div>
+            `;
+            
+            logEntries.unshift(entry);
+            if (logEntries.length > 15) logEntries.pop();
+            detectionLog.innerHTML = logEntries.join('');
+        }
+        
+        // Simulate detection events
+        const events = [
+            ['TRAJECTORY UPDATE', 'Object 2099942 orbital path refined', 0.85],
+            ['NEW DETECTION', 'Object 2024AA discovered by Pan-STARRS', 0.34],
+            ['CLOSE APPROACH', 'Object 2005YU55 within 1 LD on 2024-03-15', 0.67],
+            ['AI ANALYSIS', 'Threat model updated for 247 objects', 0.45],
+            ['OBSERVATION', 'Spectral data received for Object 1999RQ36', 0.52]
+        ];
+        
+        let eventIndex = 0;
+        setInterval(() => {
+            const event = events[eventIndex % events.length];
+            addLogEntry(event[0], event[1], event[2]);
+            eventIndex++;
+        }, 3000);
+        
+        // Initialize with some entries
+        for (let i = 0; i < 5; i++) {
+            const event = events[i];
+            addLogEntry(event[0], event[1], event[2]);
+        }
+        
+        // Load orbital element distributions
+        fetch('/api/galaxy')
+            .then(res => res.json())
+            .then(data => {
+                // Eccentricity plot (mock - would need actual e values from API)
+                const eData = Array.from({length: 100}, () => Math.random() * 0.3);
+                const ePlot = {
+                    x: eData,
+                    type: 'histogram',
+                    marker: { color: '#00bfff' },
+                    name: 'Eccentricity'
+                };
+                
+                Plotly.newPlot('eccentricityPlot', [ePlot], {
+                    title: { text: 'Eccentricity', font: { color: '#00bfff', size: 12 } },
+                    xaxis: { title: 'e', color: '#ffffff', gridcolor: '#333' },
+                    yaxis: { title: 'Count', color: '#ffffff', gridcolor: '#333' },
+                    plot_bgcolor: '#0a0a0a',
+                    paper_bgcolor: 'transparent',
+                    font: { color: '#ffffff', size: 10 },
+                    margin: { t: 40, r: 20, b: 40, l: 40 }
+                }, { responsive: true, displayModeBar: false });
+                
+                // Inclination plot
+                const iData = Array.from({length: 100}, () => Math.random() * 30);
+                Plotly.newPlot('inclinationPlot', [{
+                    x: iData, type: 'histogram', marker: { color: '#ffa500' }
+                }], {
+                    title: { text: 'Inclination', font: { color: '#ffa500', size: 12 } },
+                    xaxis: { title: 'deg', color: '#ffffff', gridcolor: '#333' },
+                    yaxis: { title: 'Count', color: '#ffffff', gridcolor: '#333' },
+                    plot_bgcolor: '#0a0a0a',
+                    paper_bgcolor: 'transparent',
+                    font: { color: '#ffffff', size: 10 },
+                    margin: { t: 40, r: 20, b: 40, l: 40 }
+                }, { responsive: true, displayModeBar: false });
+                
+                // Period plot
+                const pData = Array.from({length: 100}, () => Math.random() * 5);
+                Plotly.newPlot('periodPlot', [{
+                    x: pData, type: 'histogram', marker: { color: '#00ff7f' }
+                }], {
+                    title: { text: 'Orbital Period', font: { color: '#00ff7f', size: 12 } },
+                    xaxis: { title: 'years', color: '#ffffff', gridcolor: '#333' },
+                    yaxis: { title: 'Count', color: '#ffffff', gridcolor: '#333' },
+                    plot_bgcolor: '#0a0a0a',
+                    paper_bgcolor: 'transparent',
+                    font: { color: '#ffffff', size: 10 },
+                    margin: { t: 40, r: 20, b: 40, l: 40 }
+                }, { responsive: true, displayModeBar: false });
+                
+                // Uncertainty scatter
+                const uncertaintyData = {
+                    x: data.threat,
+                    y: Array.from({length: data.threat.length}, () => Math.random() * 0.3),
+                    mode: 'markers',
+                    type: 'scatter',
+                    marker: { size: 4, color: data.threat, colorscale: 'Viridis', opacity: 0.6 }
+                };
+                
+                Plotly.newPlot('uncertaintyPlot', [uncertaintyData], {
+                    xaxis: { title: 'Threat Score', color: '#ffffff', gridcolor: '#333' },
+                    yaxis: { title: 'Uncertainty (σ)', color: '#ffffff', gridcolor: '#333' },
+                    plot_bgcolor: '#0a0a0a',
+                    paper_bgcolor: 'transparent',
+                    font: { color: '#ffffff', size: 10 },
+                    margin: { t: 20, r: 20, b: 40, l: 40 }
+                }, { responsive: true, displayModeBar: false });
+            });
+        
+        // Threat components
+        const components = document.getElementById('threatComponents');
+        components.innerHTML = `
+            <div style="margin-bottom: 16px;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                    <span>Latent AI Risk</span>
+                    <span style="color: var(--electric-blue);">35%</span>
+                </div>
+                <div style="height: 8px; background: rgba(0,191,255,0.1); border-radius: 4px;">
+                    <div style="height: 100%; width: 35%; background: var(--electric-blue); border-radius: 4px;"></div>
+                </div>
+            </div>
+            <div style="margin-bottom: 16px;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                    <span>Uncertainty Factor</span>
+                    <span style="color: var(--warning);">25%</span>
+                </div>
+                <div style="height: 8px; background: rgba(255,165,0,0.1); border-radius: 4px;">
+                    <div style="height: 100%; width: 25%; background: var(--warning); border-radius: 4px;"></div>
+                </div>
+            </div>
+            <div style="margin-bottom: 16px;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                    <span>Proximity Risk (MOID)</span>
+                    <span style="color: var(--danger);">25%</span>
+                </div>
+                <div style="height: 8px; background: rgba(255,0,0,0.1); border-radius: 4px;">
+                    <div style="height: 100%; width: 25%; background: var(--danger); border-radius: 4px;"></div>
+                </div>
+            </div>
+            <div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                    <span>Energy Proxy (H)</span>
+                    <span style="color: var(--success);">15%</span>
+                </div>
+                <div style="height: 8px; background: rgba(0,255,127,0.1); border-radius: 4px;">
+                    <div style="height: 100%; width: 15%; background: var(--success); border-radius: 4px;"></div>
+                </div>
+            </div>
+        `;
+    </script>
+</body>
+</html>

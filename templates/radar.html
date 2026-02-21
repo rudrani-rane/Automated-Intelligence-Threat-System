@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Earth Proximity Radar - ATIS</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;500;600&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <script src="https://cdn.plot.ly/plotly-2.26.0.min.js"></script>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-content">
+            <div class="logo">🛰️ ATIS</div>
+            <ul class="nav-links">
+                <li><a href="/">Home</a></li>
+                <li><a href="/galaxy">Galaxy</a></li>
+                <li><a href="/radar" class="active">Radar</a></li>
+                <li><a href="/watchlist">Watchlist</a></li>
+                <li><a href="/trajectory">Trajectory</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container" style="margin-top: 100px;">
+        <div style="text-align: center; margin-bottom: 48px;">
+            <h1>Earth Proximity Radar</h1>
+            <p style="font-size: 1.125rem; color: rgba(255,255,255,0.8);">
+                MOID vs Threat Score Analysis • Real-Time Collision Risk Assessment
+            </p>
+        </div>
+
+        <!-- Radar Visualization -->
+        <div class="card" style="margin-bottom: 32px;">
+            <div class="card-header">
+                <h3 class="card-title">Proximity-Threat Correlation Map</h3>
+                <div class="status-indicator">
+                    <div class="status-dot active"></div>
+                    <span>ACTIVE SCAN</span>
+                </div>
+            </div>
+            <div class="card-body">
+                <div id="radarPlot" style="width: 100%; height: 600px;"></div>
+            </div>
+        </div>
+
+        <!-- Statistics Grid -->
+        <div class="grid grid-3">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Proximity Zones</h3>
+                </div>
+                <div class="card-body">
+                    <div style="font-family: var(--font-mono); font-size: 0.875rem;">
+                        <div style="margin-bottom: 12px; padding: 12px; background: rgba(255,0,0,0.1); border-left: 3px solid #ff0000; border-radius: 4px;">
+                            <div style="font-weight: 600; color: #ff0000;">CRITICAL ZONE</div>
+                            <div style="font-size: 0.75rem; margin-top: 4px;">MOID < 0.05 AU</div>
+                            <div id="criticalCount" style="font-size: 1.5rem; margin-top: 8px;">--</div>
+                        </div>
+                        <div style="margin-bottom: 12px; padding: 12px; background: rgba(255,165,0,0.1); border-left: 3px solid #ffa500; border-radius: 4px;">
+                            <div style="font-weight: 600; color: #ffa500;">WARNING ZONE</div>
+                            <div style="font-size: 0.75rem; margin-top: 4px;">0.05 - 0.15 AU</div>
+                            <div id="warningCount" style="font-size: 1.5rem; margin-top: 8px;">--</div>
+                        </div>
+                        <div style="padding: 12px; background: rgba(0,255,127,0.1); border-left: 3px solid #00ff7f; border-radius: 4px;">
+                            <div style="font-weight: 600; color: #00ff7f;">SAFE ZONE</div>
+                            <div style="font-size: 0.75rem; margin-top: 4px;">MOID > 0.15 AU</div>
+                            <div id="safeCount" style="font-size: 1.5rem; margin-top: 8px;">--</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Threat Distribution</h3>
+                </div>
+                <div class="card-body">
+                    <div id="threatHistogram" style="width: 100%; height: 300px;"></div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Key Metrics</h3>
+                </div>
+                <div class="card-body">
+                    <div style="font-family: var(--font-mono); font-size: 0.875rem;">
+                        <div style="margin-bottom: 16px;">
+                            <div style="color: var(--electric-blue); font-size: 0.75rem; margin-bottom: 4px;">AVERAGE THREAT</div>
+                            <div id="avgThreat" style="font-size: 1.5rem;">--</div>
+                        </div>
+                        <div style="margin-bottom: 16px;">
+                            <div style="color: var(--electric-blue); font-size: 0.75rem; margin-bottom: 4px;">AVERAGE MOID</div>
+                            <div id="avgMoid" style="font-size: 1.5rem;">--</div>
+                        </div>
+                        <div style="margin-bottom: 16px;">
+                            <div style="color: var(--electric-blue); font-size: 0.75rem; margin-bottom: 4px;">CORRELATION</div>
+                            <div id="correlation" style="font-size: 1.5rem;">--</div>
+                        </div>
+                        <div>
+                            <div style="color: var(--electric-blue); font-size: 0.75rem; margin-bottom: 4px;">TOTAL OBJECTS</div>
+                            <div id="totalObjects" style="font-size: 1.5rem;">--</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Fetch radar data
+        fetch('/api/radar')
+            .then(res => res.json())
+            .then(data => {
+                const moid = data.moid;
+                const threat = data.threat;
+                
+                // Create scatter plot
+                const trace = {
+                    x: moid,
+                    y: threat,
+                    mode: 'markers',
+                    type: 'scatter',
+                    marker: {
+                        size: 6,
+                        color: threat,
+                        colorscale: [
+                            [0, '#420A68'],
+                            [0.25, '#932667'],
+                            [0.5, '#DD513A'],
+                            [0.75, '#FCA50A'],
+                            [1, '#FCFFA4']
+                        ],
+                        showscale: true,
+                        colorbar: {
+                            title: 'Threat Score',
+                            titlefont: { color: '#00bfff' },
+                            tickfont: { color: '#ffffff' },
+                            bgcolor: 'rgba(26, 26, 26, 0.9)',
+                            bordercolor: '#00bfff'
+                        },
+                        line: {
+                            color: '#00bfff',
+                            width: 0.5
+                        },
+                        opacity: 0.7
+                    },
+                    text: moid.map((m, i) => `MOID: ${m.toFixed(4)} AU<br>Threat: ${(threat[i] * 100).toFixed(1)}%`),
+                    hovertemplate: '<b>%{text}</b><extra></extra>'
+                };
+                
+                const layout = {
+                    title: {
+                        text: 'Minimum Orbit Intersection Distance vs Threat Score',
+                        font: { color: '#00bfff', family: 'Orbitron', size: 16 }
+                    },
+                    xaxis: {
+                        title: 'MOID (Astronomical Units)',
+                        gridcolor: '#333333',
+                        color: '#ffffff',
+                        zeroline: true,
+                        zerolinecolor: '#00bfff'
+                    },
+                    yaxis: {
+                        title: 'Threat Score (0-1)',
+                        gridcolor: '#333333',
+                        color: '#ffffff',
+                        range: [0, 1]
+                    },
+                    plot_bgcolor: '#0a0a0a',
+                    paper_bgcolor: '#1a1a1a',
+                    font: { color: '#ffffff', family: 'Inter' },
+                    hovermode: 'closest',
+                    margin: { t: 60, r: 40, b: 60, l: 60 }
+                };
+                
+                const config = {
+                    responsive: true,
+                    displayModeBar: true,
+                    displaylogo: false
+                };
+                
+                Plotly.newPlot('radarPlot', [trace], layout, config);
+                
+                // Calculate statistics
+                const totalObjects = moid.length;
+                const avgThreat = (threat.reduce((a, b) => a + b, 0) / totalObjects).toFixed(3);
+                const avgMoid = (moid.reduce((a, b) => a + b, 0) / totalObjects).toFixed(4);
+                
+                // Calculate correlation
+                const meanThreat = threat.reduce((a, b) => a + b, 0) / totalObjects;
+                const meanMoid = moid.reduce((a, b) => a + b, 0) / totalObjects;
+                let numerator = 0, denomX = 0, denomY = 0;
+                
+                for (let i = 0; i < totalObjects; i++) {
+                    const dx = moid[i] - meanMoid;
+                    const dy = threat[i] - meanThreat;
+                    numerator += dx * dy;
+                    denomX += dx * dx;
+                    denomY += dy * dy;
+                }
+                
+                const correlation = (numerator / Math.sqrt(denomX * denomY)).toFixed(3);
+                
+                // Count zones
+                const criticalCount = moid.filter(m => m < 0.05).length;
+                const warningCount = moid.filter(m => m >= 0.05 && m < 0.15).length;
+                const safeCount = moid.filter(m => m >= 0.15).length;
+                
+                // Update UI
+                document.getElementById('avgThreat').textContent = avgThreat;
+                document.getElementById('avgMoid').textContent = avgMoid + ' AU';
+                document.getElementById('correlation').textContent = correlation;
+                document.getElementById('totalObjects').textContent = totalObjects.toLocaleString();
+                document.getElementById('criticalCount').textContent = criticalCount;
+                document.getElementById('warningCount').textContent = warningCount;
+                document.getElementById('safeCount').textContent = safeCount;
+                
+                // Create histogram
+                const histTrace = {
+                    x: threat,
+                    type: 'histogram',
+                    marker: {
+                        color: '#00bfff',
+                        line: { color: '#0a0a0a', width: 1 }
+                    },
+                    opacity: 0.7,
+                    nbinsx: 20
+                };
+                
+                const histLayout = {
+                    xaxis: { title: 'Threat Score', color: '#ffffff', gridcolor: '#333333' },
+                    yaxis: { title: 'Count', color: '#ffffff', gridcolor: '#333333' },
+                    plot_bgcolor: '#0a0a0a',
+                    paper_bgcolor: 'transparent',
+                    font: { color: '#ffffff', family: 'Inter', size: 10 },
+                    margin: { t: 20, r: 20, b: 40, l: 50 }
+                };
+                
+                Plotly.newPlot('threatHistogram', [histTrace], histLayout, { responsive: true, displayModeBar: false });
+            })
+            .catch(err => {
+                console.error('Error loading radar data:', err);
+                document.getElementById('radarPlot').innerHTML = '<p style="color: var(--danger); text-align: center; padding: 100px;">Error loading radar data</p>';
+            });
+    </script>
+</body>
+</html>

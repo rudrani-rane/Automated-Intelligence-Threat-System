@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Orbital Galaxy - ATIS</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;500;600&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/three@0.155.0/build/three.min.js"></script>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-content">
+            <div class="logo">🛰️ ATIS</div>
+            <ul class="nav-links">
+                <li><a href="/">Home</a></li>
+                <li><a href="/galaxy" class="active">Galaxy</a></li>
+                <li><a href="/radar">Radar</a></li>
+                <li><a href="/watchlist">Watchlist</a></li>
+                <li><a href="/trajectory">Trajectory</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Fullscreen Canvas -->
+    <div class="fullscreen">
+        <canvas id="scene"></canvas>
+        
+        <!-- Control Panel -->
+        <div class="floating-panel panel-top-left" style="width: 280px;">
+            <h3 style="margin-bottom: 16px; font-size: 1rem;">Galaxy Controls</h3>
+            <div style="font-family: var(--font-mono); font-size: 0.875rem;">
+                <div style="margin-bottom: 12px;">
+                    <label style="display: block; margin-bottom: 4px; color: var(--electric-blue);">Rotation Speed</label>
+                    <div style="display: flex; gap: 8px;">
+                        <button class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.75rem;" onclick="adjustSpeed(-0.0005)">−</button>
+                        <span id="speedDisplay" style="flex: 1; text-align: center; padding: 6px; background: rgba(0,191,255,0.1); border-radius: 4px;">1.0x</span>
+                        <button class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.75rem;" onclick="adjustSpeed(0.0005)">+</button>
+                    </div>
+                </div>
+                
+                <div style="margin-bottom: 12px;">
+                    <label style="display: block; margin-bottom: 4px; color: var(--electric-blue);">View Controls</label>
+                    <button class="btn btn-primary" style="width: 100%; margin-bottom: 8px; padding: 8px; font-size: 0.75rem;" onclick="resetView()">Reset Camera</button>
+                </div>
+                
+                <div style="padding: 12px; background: rgba(0,191,255,0.05); border-radius: 4px; border-left: 3px solid var(--electric-blue);">
+                    <div style="font-weight: 600; margin-bottom: 8px;">Keyboard Shortcuts</div>
+                    <div style="font-size: 0.75rem; line-height: 1.8;">
+                        <div><kbd style="background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 3px;">Space</kbd> Pause/Play</div>
+                        <div><kbd style="background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 3px;">+/−</kbd> Speed</div>
+                        <div><kbd style="background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 3px;">R</kbd> Reset View</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Legend Panel -->
+        <div class="floating-panel panel-top-right" style="width: 220px;">
+            <h3 style="margin-bottom: 16px; font-size: 1rem;">Threat Scale</h3>
+            <div style="font-size: 0.875rem;">
+                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+                    <div style="width: 20px; height: 20px; background: #FCFFA4; border-radius: 50%;"></div>
+                    <span>Critical (>70%)</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+                    <div style="width: 20px; height: 20px; background: #FCA50A; border-radius: 50%;"></div>
+                    <span>High (50-70%)</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+                    <div style="width: 20px; height: 20px; background: #DD513A; border-radius: 50%;"></div>
+                    <span>Medium (30-50%)</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+                    <div style="width: 20px; height: 20px; background: #932667; border-radius: 50%;"></div>
+                    <span>Low (10-30%)</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <div style="width: 20px; height: 20px; background: #420A68; border-radius: 50%;"></div>
+                    <span>Safe (<10%)</span>
+                </div>
+            </div>
+            
+            <div style="margin-top: 24px; padding: 12px; background: rgba(0,191,255,0.05); border-radius: 4px;">
+                <div style="font-size: 0.75rem; color: rgba(255,255,255,0.7);">
+                    <div>🌍 Blue Ring: Earth Orbit</div>
+                    <div style="margin-top: 4px;">⭐ Background: Star Field</div>
+                    <div style="margin-top: 4px;">🔵 Large Points: Live Updates</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Stats Panel -->
+        <div class="floating-panel panel-bottom-right" style="width: 260px;">
+            <h3 style="margin-bottom: 12px; font-size: 1rem;">Live Statistics</h3>
+            <div id="stats" style="font-family: var(--font-mono); font-size: 0.75rem; line-height: 1.8;">
+                <div>Total Asteroids: <span style="color: var(--electric-blue);" id="totalCount">Loading...</span></div>
+                <div>Live Objects: <span style="color: var(--success);" id="liveCount">0</span></div>
+                <div>Frame Rate: <span style="color: var(--warning);" id="fps">60</span> FPS</div>
+                <div>Camera Position: <span id="camPos">(0, 5, 15)</span></div>
+                <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border-gray);">
+                    Status: <span class="badge badge-safe" style="font-size: 0.65rem;">RENDERING</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/galaxy.js"></script>
+    <script>
+        // Helper functions for UI controls
+        function adjustSpeed(delta) {
+            rotationSpeed += delta;
+            rotationSpeed = Math.max(-0.01, Math.min(0.01, rotationSpeed));
+            const displaySpeed = (rotationSpeed / 0.001).toFixed(1);
+            document.getElementById('speedDisplay').textContent = displaySpeed + 'x';
+        }
+        
+        function resetView() {
+            camera.position.set(0, 5, 15);
+            rotationSpeed = 0.001;
+            document.getElementById('speedDisplay').textContent = '1.0x';
+        }
+        
+        // Update stats
+        let frameCount = 0;
+        let lastTime = performance.now();
+        
+        setInterval(() => {
+            const now = performance.now();
+            const fps = Math.round(frameCount / ((now - lastTime) / 1000));
+            document.getElementById('fps').textContent = fps;
+            frameCount = 0;
+            lastTime = now;
+            
+            // Update camera position
+            const camPos = `(${camera.position.x.toFixed(1)}, ${camera.position.y.toFixed(1)}, ${camera.position.z.toFixed(1)})`;
+            document.getElementById('camPos').textContent = camPos;
+        }, 1000);
+        
+        // Count frames
+        setInterval(() => { frameCount++; }, 16);
+    </script>
+</body>
+</html>

@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Threat Watchlist - ATIS</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;500;600&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-content">
+            <div class="logo">🛰️ ATIS</div>
+            <ul class="nav-links">
+                <li><a href="/">Home</a></li>
+                <li><a href="/galaxy">Galaxy</a></li>
+                <li><a href="/radar">Radar</a></li>
+                <li><a href="/watchlist" class="active">Watchlist</a></li>
+                <li><a href="/trajectory">Trajectory</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container" style="margin-top: 100px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px;">
+            <div>
+                <h1>Threat Watchlist</h1>
+                <p style="font-size: 1.125rem; color: rgba(255,255,255,0.8);">
+                    Auto-Updating Priority Threat Rankings
+                </p>
+            </div>
+            <div style="display: flex; gap: 12px; align-items: center;">
+                <div class="status-indicator">
+                    <div class="status-dot active"></div>
+                    <span id="updateStatus">Auto-Update ON</span>
+                </div>
+                <button class="btn btn-secondary" onclick="refreshData()">🔄 Refresh</button>
+                <button class="btn btn-primary" onclick="exportCSV()">📥 Export CSV</button>
+            </div>
+        </div>
+
+        <!-- Search and Filter -->
+        <div class="card" style="margin-bottom: 24px;">
+            <div style="display: flex; gap: 16px; align-items: center;">
+                <div style="flex: 1;">
+                    <input 
+                        type="text" 
+                        id="searchInput" 
+                        placeholder="Search by Object ID..." 
+                        style="width: 100%; padding: 12px; background: rgba(0,191,255,0.05); border: 1px solid var(--border-gray); border-radius: 4px; color: white; font-family: var(--font-mono); font-size: 0.875rem;"
+                        onkeyup="filterTable()"
+                    >
+                </div>
+                <div>
+                    <select 
+                        id="filterSelect" 
+                        style="padding: 12px; background: rgba(0,191,255,0.05); border: 1px solid var(--border-gray); border-radius: 4px; color: white; font-family: var(--font-mono); font-size: 0.875rem;"
+                        onchange="filterTable()"
+                    >
+                        <option value="all">All Threats</option>
+                        <option value="critical">Critical (>70%)</option>
+                        <option value="high">High (50-70%)</option>
+                        <option value="medium">Medium (30-50%)</option>
+                        <option value="low">Low (<30%)</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- Watchlist Table -->
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Top Priority Objects</h3>
+                <span id="resultCount" class="badge badge-low">0 objects</span>
+            </div>
+            <div class="card-body" style="padding: 0; overflow-x: auto;">
+                <table class="data-table" id="watchlistTable">
+                    <thead>
+                        <tr>
+                            <th onclick="sortTable(0)">Rank ▼</th>
+                            <th onclick="sortTable(1)">Object ID ▼</th>
+                            <th onclick="sortTable(2)">Threat Score ▼</th>
+                            <th onclick="sortTable(3)">Status ▼</th>
+                            <th>Trend</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="watchlistBody">
+                        <tr>
+                            <td colspan="6" style="text-align: center; padding: 60px;">
+                                <div class="spinner" style="margin: 0 auto;"></div>
+                                <div style="margin-top: 16px; color: rgba(255,255,255,0.5);">Loading threat data...</div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let watchlistData = [];
+        let sortColumn = 2; // Default sort by threat score
+        let sortAscending = false;
+
+        // Fetch watchlist data
+        function loadWatchlist() {
+            fetch('/api/watchlist')
+                .then(res => res.json())
+                .then(data => {
+                    watchlistData = data;
+                    renderTable(data);
+                    document.getElementById('resultCount').textContent = `${data.length} objects`;
+                })
+                .catch(err => {
+                    console.error('Error loading watchlist:', err);
+                    document.getElementById('watchlistBody').innerHTML = `
+                        <tr>
+                            <td colspan="6" style="text-align: center; padding: 60px; color: var(--danger);">
+                                Error loading watchlist data
+                            </td>
+                        </tr>
+                    `;
+                });
+        }
+
+        // Render table
+        function renderTable(data) {
+            const tbody = document.getElementById('watchlistBody');
+            
+            if (data.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="6" style="text-align: center; padding: 60px; color: rgba(255,255,255,0.5);">
+                            No objects match the current filter
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            tbody.innerHTML = data.map((item, idx) => {
+                const threatPercent = (item.threat_score * 100).toFixed(1);
+                let badgeClass = 'badge-safe';
+                let statusText = 'SAFE';
+                
+                if (item.threat_score > 0.7) {
+                    badgeClass = 'badge-critical';
+                    statusText = 'CRITICAL';
+                } else if (item.threat_score > 0.5) {
+                    badgeClass = 'badge-high';
+                    statusText = 'HIGH RISK';
+                } else if (item.threat_score > 0.3) {
+                    badgeClass = 'badge-medium';
+                    statusText = 'MODERATE';
+                } else if (item.threat_score > 0.1) {
+                    badgeClass = 'badge-low';
+                    statusText = 'LOW RISK';
+                }
+                
+                // Generate random trend sparkline (mock data)
+                const trendData = Array.from({length: 10}, () => Math.random() * 0.2 + item.threat_score - 0.1);
+                const sparkline = generateSparkline(trendData);
+                
+                return `
+                    <tr data-threat="${item.threat_score}" data-id="${item.spkid}">
+                        <td style="font-weight: 600; color: var(--electric-blue);">#${idx + 1}</td>
+                        <td style="font-family: var(--font-mono);">${item.spkid}</td>
+                        <td>
+                            <div style="display: flex; align-items: center; gap: 12px;">
+                                <div style="flex: 1; background: rgba(0,191,255,0.1); border-radius: 4px; height: 20px; position: relative; overflow: hidden;">
+                                    <div style="background: ${getBadgeColor(item.threat_score)}; height: 100%; width: ${threatPercent}%; transition: width 0.3s;"></div>
+                                </div>
+                                <span style="font-weight: 600; min-width: 50px;">${threatPercent}%</span>
+                            </div>
+                        </td>
+                        <td><span class="badge ${badgeClass}">${statusText}</span></td>
+                        <td>${sparkline}</td>
+                        <td>
+                            <button class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.75rem;" onclick="viewDetails('${item.spkid}')">
+                                Details
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // Generate simple SVG sparkline
+        function generateSparkline(data) {
+            const width = 80;
+            const height = 30;
+            const max = Math.max(...data);
+            const min = Math.min(...data);
+            const range = max - min || 1;
+            
+            const points = data.map((val, idx) => {
+                const x = (idx / (data.length - 1)) * width;
+                const y = height - ((val - min) / range) * height;
+                return `${x},${y}`;
+            }).join(' ');
+            
+            return `
+                <svg width="${width}" height="${height}" style="display: block;">
+                    <polyline 
+                        points="${points}" 
+                        fill="none" 
+                        stroke="#00bfff" 
+                        stroke-width="2"
+                    />
+                </svg>
+            `;
+        }
+
+        // Get badge color
+        function getBadgeColor(threat) {
+            if (threat > 0.7) return '#ff0000';
+            if (threat > 0.5) return '#ffa500';
+            if (threat > 0.3) return '#DD513A';
+            if (threat > 0.1) return '#932667';
+            return '#00ff7f';
+        }
+
+        // Filter table
+        function filterTable() {
+            const searchValue = document.getElementById('searchInput').value.toLowerCase();
+            const filterValue = document.getElementById('filterSelect').value;
+            
+            let filtered = watchlistData.filter(item => {
+                const matchesSearch = item.spkid.toString().includes(searchValue);
+                let matchesFilter = true;
+                
+                switch(filterValue) {
+                    case 'critical':
+                        matchesFilter = item.threat_score > 0.7;
+                        break;
+                    case 'high':
+                        matchesFilter = item.threat_score > 0.5 && item.threat_score <= 0.7;
+                        break;
+                    case 'medium':
+                        matchesFilter = item.threat_score > 0.3 && item.threat_score <= 0.5;
+                        break;
+                    case 'low':
+                        matchesFilter = item.threat_score <= 0.3;
+                        break;
+                }
+                
+                return matchesSearch && matchesFilter;
+            });
+            
+            renderTable(filtered);
+            document.getElementById('resultCount').textContent = `${filtered.length} objects`;
+        }
+
+        // Sort table
+        function sortTable(column) {
+            if (sortColumn === column) {
+                sortAscending = !sortAscending;
+            } else {
+                sortColumn = column;
+                sortAscending = false;
+            }
+            
+            watchlistData.sort((a, b) => {
+                let aVal, bVal;
+                
+                switch(column) {
+                    case 1: // Object ID
+                        aVal = a.spkid;
+                        bVal = b.spkid;
+                        break;
+                    case 2: // Threat Score
+                        aVal = a.threat_score;
+                        bVal = b.threat_score;
+                        break;
+                    default:
+                        return 0;
+                }
+                
+                if (aVal < bVal) return sortAscending ? -1 : 1;
+                if (aVal > bVal) return sortAscending ? 1 : -1;
+                return 0;
+            });
+            
+            renderTable(watchlistData);
+        }
+
+        // Refresh data
+        function refreshData() {
+            document.getElementById('updateStatus').textContent = 'Refreshing...';
+            loadWatchlist();
+            setTimeout(() => {
+                document.getElementById('updateStatus').textContent = 'Auto-Update ON';
+            }, 1000);
+        }
+
+        // Export to CSV
+        function exportCSV() {
+            const csv = [
+                ['Rank', 'Object ID', 'Threat Score'],
+                ...watchlistData.map((item, idx) => [idx + 1, item.spkid, item.threat_score])
+            ].map(row => row.join(',')).join('\n');
+            
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `atis_watchlist_${new Date().toISOString().split('T')[0]}.csv`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        // View details (placeholder)
+        function viewDetails(objectId) {
+            alert(`Detailed view for object ${objectId} coming soon!\n\nThis will show:\n- Complete orbital parameters\n- Trajectory prediction\n- Risk analysis breakdown\n- Historical observations`);
+        }
+
+        // Initial load
+        loadWatchlist();
+        
+        // Auto-refresh every 60 seconds
+        setInterval(refreshData, 60000);
+    </script>
+</body>
+</html>
