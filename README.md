@@ -1,14 +1,3 @@
----
-title: ATIS - Automated Intelligence Threat System
-emoji: 🛰️
-colorFrom: blue
-colorTo: indigo
-sdk: docker
-app_port: 7860
-pinned: true
-license: mit
-short_description: AI-powered Near-Earth Object threat monitoring
----
 
 # 🛰️ ATIS — Automated Threat Intelligence System
 
