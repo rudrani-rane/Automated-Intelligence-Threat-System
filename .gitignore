@@ -1,6 +1,26 @@
-venv/
-src/data/__pycache__/
+﻿venv/
+env/
+.env
+
+# Python cache
+__pycache__/
 *.pyc
 *.pyo
+*.pyd
+
+# Docs (not deployed)
 docs/
-env/
+
+# Logs
+logs/
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+
+# NOTE: data/ and outputs/ are intentionally tracked.
+# Railway needs them at build time. If best_model.pth grows large, use Git LFS.
