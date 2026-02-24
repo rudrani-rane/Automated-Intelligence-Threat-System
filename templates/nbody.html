@@ -69,7 +69,7 @@
 
     <!-- Controls -->
     <div class="card" style="margin-bottom:2rem">
-        <div class="card-header"><h3 class="card-title">&#x2699;&#xFE0F; Simulation Parameters</h3></div>
+        <div class="card-header"><h3 class="card-title">Simulation Parameters</h3></div>
         <div class="card-body">
             <div class="nb-ctrl">
                 <div class="nb-inp"><label>Integration Steps</label>
@@ -98,26 +98,26 @@
     <!-- Output -->
     <div class="grid grid-2" style="margin-bottom:2rem">
         <div class="card">
-            <div class="card-header"><h3 class="card-title">&#x1F4CB; Body State (Simulation Start)</h3></div>
+            <div class="card-header"><h3 class="card-title">Body State (Simulation Start)</h3></div>
             <div class="card-body" id="bodyStates"></div>
         </div>
         <div class="card">
-            <div class="card-header"><h3 class="card-title">&#x1F4DD; Integration Log (first 10 steps)</h3></div>
+            <div class="card-header"><h3 class="card-title">Integration Log (first 10 steps)</h3></div>
             <div class="card-body" id="integLog" style="max-height:250px;overflow-y:auto"></div>
         </div>
     </div>
 
     <div class="grid grid-2" style="margin-bottom:2rem">
-        <div class="card"><div class="card-header"><h3 class="card-title">&#x1F30E; 2D Trajectory (XY plane)</h3></div>
+        <div class="card"><div class="card-header"><h3 class="card-title">2D Trajectory (XY plane)</h3></div>
             <div id="orbitPlot2D" style="height:450px"></div></div>
-        <div class="card"><div class="card-header"><h3 class="card-title">&#x1F4CF; Earth-Asteroid Distance</h3></div>
+        <div class="card"><div class="card-header"><h3 class="card-title">Earth-Asteroid Distance</h3></div>
             <div id="distancePlot" style="height:450px"></div></div>
     </div>
 
     <div class="grid grid-2">
-        <div class="card"><div class="card-header"><h3 class="card-title">&#x1F4A1; Energy Conservation</h3></div>
+        <div class="card"><div class="card-header"><h3 class="card-title">Energy Conservation</h3></div>
             <div id="energyPlot" style="height:300px"></div></div>
-        <div class="card"><div class="card-header"><h3 class="card-title">&#x26A1; Speed Profile</h3></div>
+        <div class="card"><div class="card-header"><h3 class="card-title">Speed Profile</h3></div>
             <div id="speedPlot" style="height:300px"></div></div>
     </div>
 </div>
@@ -313,7 +313,7 @@ function runSimulation(){
         Plotly.newPlot("distancePlot",[
             {x:timeArr,y:earthAstDist,mode:"lines",type:"scatter",name:"Earth-Asteroid dist",
              line:{color:"#00d4ff",width:2},fill:"tozeroy",fillcolor:"rgba(0,212,255,.05)"},
-            {x:[timeArr[minIdx]],[y:[minDist]],mode:"markers",type:"scatter",name:"Closest approach",
+            {x:[timeArr[minIdx]],y:[minDist],mode:"markers",type:"scatter",name:"Closest approach",
              marker:{color:"#ff3333",size:10,symbol:"star"},
              text:[`Min: ${minDist.toFixed(4)} AU (${(minDist*389.17).toFixed(1)} LD)`],hoverinfo:"text+x"},
             {x:timeArr,y:Array(timeArr.length).fill(0.05),mode:"lines",name:"PHA 0.05 AU",
