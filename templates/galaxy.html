@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -12,13 +12,23 @@
     <!-- Navigation -->
     <nav class="navbar">
         <div class="nav-content">
-            <div class="logo">🛰️ ATIS</div>
+            <div class="logo">&#x1F6F0;&#xFE0F; ATIS</div>
             <ul class="nav-links">
                 <li><a href="/">Home</a></li>
                 <li><a href="/galaxy" class="active">Galaxy</a></li>
                 <li><a href="/radar">Radar</a></li>
                 <li><a href="/watchlist">Watchlist</a></li>
                 <li><a href="/trajectory">Trajectory</a></li>
+                <li><a href="/timeline">Timeline</a></li>
+                <li><a href="/analytics">Analytics</a></li>
+                <li><a href="/multi-view">Multi-View</a></li>
+                <li><a href="/ml-dashboard">ML</a></li>
+                <li><a href="/orbital-mechanics">Orbital</a></li>
+                <li><a href="/impact-calculator">Impact Calc</a></li>
+                <li><a href="/nbody">N-Body</a></li>
+                <li><a href="/alerts">Alerts</a></li>
+                <li><a href="/trends">Trends</a></li>
+                <li><a href="/comparison">Compare</a></li>
             </ul>
         </div>
     </nav>
@@ -34,7 +44,7 @@
                 <div style="margin-bottom: 12px;">
                     <label style="display: block; margin-bottom: 4px; color: var(--electric-blue);">Rotation Speed</label>
                     <div style="display: flex; gap: 8px;">
-                        <button class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.75rem;" onclick="adjustSpeed(-0.0005)">−</button>
+                        <button class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.75rem;" onclick="adjustSpeed(-0.0005)">&minus;</button>
                         <span id="speedDisplay" style="flex: 1; text-align: center; padding: 6px; background: rgba(0,191,255,0.1); border-radius: 4px;">1.0x</span>
                         <button class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.75rem;" onclick="adjustSpeed(0.0005)">+</button>
                     </div>
@@ -49,7 +59,7 @@
                     <div style="font-weight: 600; margin-bottom: 8px;">Keyboard Shortcuts</div>
                     <div style="font-size: 0.75rem; line-height: 1.8;">
                         <div><kbd style="background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 3px;">Space</kbd> Pause/Play</div>
-                        <div><kbd style="background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 3px;">+/−</kbd> Speed</div>
+                        <div><kbd style="background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 3px;">+/&minus;</kbd> Speed</div>
                         <div><kbd style="background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 3px;">R</kbd> Reset View</div>
                     </div>
                 </div>
@@ -84,9 +94,9 @@
             
             <div style="margin-top: 24px; padding: 12px; background: rgba(0,191,255,0.05); border-radius: 4px;">
                 <div style="font-size: 0.75rem; color: rgba(255,255,255,0.7);">
-                    <div>🌍 Blue Ring: Earth Orbit</div>
-                    <div style="margin-top: 4px;">⭐ Background: Star Field</div>
-                    <div style="margin-top: 4px;">🔵 Large Points: Live Updates</div>
+                    <div>&#x1F30D; Blue Ring: Earth Orbit</div>
+                    <div style="margin-top: 4px;">&#x2B50; Background: Star Field</div>
+                    <div style="margin-top: 4px;">&#x1F535; Large Points: Live Updates</div>
                 </div>
             </div>
         </div>

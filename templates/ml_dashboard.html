@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -8,13 +8,33 @@
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
 </head>
 <body>
-    <header>
-        <h1>🤖 ML Performance Dashboard</h1>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-content">
+            <div class="logo">&#x1F6F0;&#xFE0F; ATIS</div>
+            <ul class="nav-links">
+                <li><a href="/">Home</a></li>
+                <li><a href="/galaxy">Galaxy</a></li>
+                <li><a href="/radar">Radar</a></li>
+                <li><a href="/watchlist">Watchlist</a></li>
+                <li><a href="/trajectory">Trajectory</a></li>
+                <li><a href="/timeline">Timeline</a></li>
+                <li><a href="/analytics">Analytics</a></li>
+                <li><a href="/multi-view">Multi-View</a></li>
+                <li><a href="/ml-dashboard" class="active">ML</a></li>
+                <li><a href="/orbital-mechanics">Orbital</a></li>
+                <li><a href="/impact-calculator">Impact Calc</a></li>
+                <li><a href="/nbody">N-Body</a></li>
+                <li><a href="/alerts">Alerts</a></li>
+                <li><a href="/trends">Trends</a></li>
+                <li><a href="/comparison">Compare</a></li>
+            </ul>
+        </div>
+    </nav>
+    
+    <header style="margin-top: 80px;">
+        <h1>&#x1F916; ML Performance Dashboard</h1>
         <p>Model evaluation metrics and performance analysis</p>
-        <nav style="margin-top: 1rem;">
-            <a href="/" style="color: var(--electric-blue); text-decoration: none; margin: 0 1rem;">← Home</a>
-            <a href="/galaxy" style="color: var(--electric-blue); text-decoration: none; margin: 0 1rem;">Galaxy View</a>
-        </nav>
     </header>
 
     <main style="padding: 2rem;">
@@ -40,6 +60,13 @@
                 <div class="stat-label">ROC-AUC</div>
                 <div class="stat-value" id="roc_auc">--</div>
             </div>
+        </div>
+
+        <!-- Global Feature Importance -->
+        <div class="chart-container" style="margin-bottom:3rem">
+            <h2>&#x1F9EC; Global Feature Importance</h2>
+            <p>Correlation of each orbital feature with threat score across all 12,054 asteroids</p>
+            <div id="globalFeatureImportance" style="height:350px;"></div>
         </div>
 
         <!-- Charts Grid -->
@@ -71,18 +98,22 @@
 
         <!-- Model Explainability Section -->
         <div class="section" style="margin-bottom: 3rem;">
-            <h2>🔍 Model Explainability</h2>
+            <h2>Model Explainability</h2>
             <p>Analyze specific asteroid predictions</p>
             
             <div style="background: rgba(0, 212, 255, 0.02); border: 1px solid rgba(0, 212, 255, 0.2); border-radius: 8px; padding: 2rem; margin-top: 1rem;">
                 <div style="margin-bottom: 1.5rem;">
-                    <label style="display: block; margin-bottom: 0.5rem; color: var(--electric-blue);">Search Asteroid:</label>
-                    <input type="text" id="explainSearch" placeholder="Enter asteroid ID or name..."
-                           style="width: 100%; max-width: 500px; padding: 0.75rem; background: rgba(0, 0, 0, 0.5); border: 1px solid rgba(0, 212, 255, 0.3); border-radius: 4px; color: white; font-family: 'Orbitron', monospace;">
+                    <label style="display: block; margin-bottom: 0.5rem; color: var(--electric-blue);">Search Asteroid (type ID or name):</label>
+                    <div class="search-wrapper" style="position:relative;display:inline-block;width:100%;max-width:500px">
+                        <input type="text" id="explainSearch" placeholder="e.g. Eros, Apophis, 20099942..."
+                               style="width: 100%; padding: 0.75rem; background: rgba(0, 0, 0, 0.5); border: 1px solid rgba(0, 212, 255, 0.3); border-radius: 4px; color: white; font-family: 'Orbitron', monospace; box-sizing:border-box">
+                        <div id="explainDropdown" class="asteroid-dropdown"></div>
+                    </div>
                     <button onclick="explainPrediction()" 
                             style="margin-left: 1rem; padding: 0.75rem 2rem; background: var(--electric-blue); color: var(--deep-space); border: none; border-radius: 4px; cursor: pointer; font-family: 'Orbitron', monospace; font-weight: bold;">
                         Explain Prediction
                     </button>
+                    <div id="explainErrMsg" style="display:none;color:#ff8888;margin-top:.5rem"></div>
                 </div>
                 
                 <div id="explainResults" style="display: none; margin-top: 2rem;">
@@ -124,18 +155,22 @@
 
         <!-- Ensemble Prediction Section -->
         <div class="section" style="margin-bottom: 3rem;">
-            <h2>🎯 Ensemble Prediction Analysis</h2>
+            <h2>Ensemble Prediction Analysis</h2>
             <p>Compare predictions from multiple models</p>
             
             <div style="background: rgba(255, 0, 255, 0.02); border: 1px solid rgba(255, 0, 255, 0.2); border-radius: 8px; padding: 2rem; margin-top: 1rem;">
                 <div style="margin-bottom: 1.5rem;">
-                    <label style="display: block; margin-bottom: 0.5rem; color: var(--magenta);">Search Asteroid:</label>
-                    <input type="text" id="ensembleSearch" placeholder="Enter asteroid ID or name..."
-                           style="width: 100%; max-width: 500px; padding: 0.75rem; background: rgba(0, 0, 0, 0.5); border: 1px solid rgba(255, 0, 255, 0.3); border-radius: 4px; color: white; font-family: 'Orbitron', monospace;">
+                    <label style="display: block; margin-bottom: 0.5rem; color: var(--magenta);">Search Asteroid (type ID or name):</label>
+                    <div class="search-wrapper" style="position:relative;display:inline-block;width:100%;max-width:500px">
+                        <input type="text" id="ensembleSearch" placeholder="e.g. Eros, Apophis, 20099942..."
+                               style="width: 100%; padding: 0.75rem; background: rgba(0, 0, 0, 0.5); border: 1px solid rgba(255, 0, 255, 0.3); border-radius: 4px; color: white; font-family: 'Orbitron', monospace; box-sizing:border-box">
+                        <div id="ensembleDropdown" class="asteroid-dropdown" style="border-color:rgba(255,0,255,.4)"></div>
+                    </div>
                     <button onclick="getEnsemblePrediction()" 
                             style="margin-left: 1rem; padding: 0.75rem 2rem; background: var(--magenta); color: white; border: none; border-radius: 4px; cursor: pointer; font-family: 'Orbitron', monospace; font-weight: bold;">
                         Get Ensemble Prediction
                     </button>
+                    <div id="ensembleErrMsg" style="display:none;color:#ff8888;margin-top:.5rem"></div>
                 </div>
                 
                 <div id="ensembleResults" style="display: none; margin-top: 2rem;">
@@ -168,18 +203,22 @@
 
         <!-- Anomaly Detection Section -->
         <div class="section">
-            <h2>⚠️ Anomaly Detection</h2>
+            <h2>Anomaly Detection</h2>
             <p>Identify asteroids with unusual characteristics</p>
             
             <div style="background: rgba(255, 165, 0, 0.02); border: 1px solid rgba(255, 165, 0, 0.2); border-radius: 8px; padding: 2rem; margin-top: 1rem;">
                 <div style="margin-bottom: 1.5rem;">
-                    <label style="display: block; margin-bottom: 0.5rem; color: #ffa500;">Search Asteroid:</label>
-                    <input type="text" id="anomalySearch" placeholder="Enter asteroid ID or name..."
-                           style="width: 100%; max-width: 500px; padding: 0.75rem; background: rgba(0, 0, 0, 0.5); border: 1px solid rgba(255, 165, 0, 0.3); border-radius: 4px; color: white; font-family: 'Orbitron', monospace;">
+                    <label style="display: block; margin-bottom: 0.5rem; color: #ffa500;">Search Asteroid (type ID or name):</label>
+                    <div class="search-wrapper" style="position:relative;display:inline-block;width:100%;max-width:500px">
+                        <input type="text" id="anomalySearch" placeholder="e.g. Eros, Apophis, 20099942..."
+                               style="width: 100%; padding: 0.75rem; background: rgba(0, 0, 0, 0.5); border: 1px solid rgba(255, 165, 0, 0.3); border-radius: 4px; color: white; font-family: 'Orbitron', monospace; box-sizing:border-box">
+                        <div id="anomalyDropdown" class="asteroid-dropdown" style="border-color:rgba(255,165,0,.4)"></div>
+                    </div>
                     <button onclick="detectAnomaly()" 
                             style="margin-left: 1rem; padding: 0.75rem 2rem; background: #ffa500; color: var(--deep-space); border: none; border-radius: 4px; cursor: pointer; font-family: 'Orbitron', monospace; font-weight: bold;">
                         Detect Anomalies
                     </button>
+                    <div id="anomalyErrMsg" style="display:none;color:#ff8888;margin-top:.5rem"></div>
                 </div>
                 
                 <div id="anomalyResults" style="display: none; margin-top: 2rem;">

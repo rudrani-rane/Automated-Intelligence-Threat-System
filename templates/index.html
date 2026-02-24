@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -11,13 +11,23 @@
     <!-- Navigation -->
     <nav class="navbar">
         <div class="nav-content">
-            <div class="logo">🛰️ ATIS</div>
+            <div class="logo">&#x1F6F0;&#xFE0F; ATIS</div>
             <ul class="nav-links">
                 <li><a href="/" class="active">Home</a></li>
                 <li><a href="/galaxy">Galaxy</a></li>
                 <li><a href="/radar">Radar</a></li>
                 <li><a href="/watchlist">Watchlist</a></li>
                 <li><a href="/trajectory">Trajectory</a></li>
+                <li><a href="/timeline">Timeline</a></li>
+                <li><a href="/analytics">Analytics</a></li>
+                <li><a href="/multi-view">Multi-View</a></li>
+                <li><a href="/ml-dashboard">ML</a></li>
+                <li><a href="/orbital-mechanics">Orbital</a></li>
+                <li><a href="/impact-calculator">Impact Calc</a></li>
+                <li><a href="/nbody">N-Body</a></li>
+                <li><a href="/alerts">Alerts</a></li>
+                <li><a href="/trends">Trends</a></li>
+                <li><a href="/comparison">Compare</a></li>
             </ul>
         </div>
     </nav>
@@ -28,7 +38,7 @@
         <div style="text-align: center; margin-bottom: 64px;">
             <h1>Automated Threat Intelligence System</h1>
             <p style="font-size: 1.125rem; color: rgba(255,255,255,0.8);">
-                Planetary Defense Mission Control • Real-Time NEO Monitoring
+                Planetary Defense Mission Control &bull; Real-Time NEO Monitoring
             </p>
         </div>
 
@@ -59,10 +69,10 @@
                 </div>
                 <div class="card-body">
                     <div style="font-family: var(--font-mono); font-size: 0.875rem;">
-                        <div style="margin-bottom: 8px;">Total Objects: <span style="color: var(--electric-blue);">12,056</span></div>
-                        <div style="margin-bottom: 8px;">High Risk: <span style="color: var(--danger);">24</span></div>
-                        <div style="margin-bottom: 8px;">PHAs: <span style="color: var(--warning);">2,347</span></div>
-                        <div>Safe: <span style="color: var(--threat-safe);">9,685</span></div>
+                        <div style="margin-bottom: 8px;">Total Objects: <span style="color: var(--electric-blue);" id="statTotal">--</span></div>
+                        <div style="margin-bottom: 8px;">Critical (&gt;70%): <span style="color: var(--danger);" id="statCritical">--</span></div>
+                        <div style="margin-bottom: 8px;">PHAs: <span style="color: var(--warning);" id="statPHA">--</span></div>
+                        <div>Low Risk: <span style="color: var(--threat-safe);" id="statLow">--</span></div>
                     </div>
                 </div>
             </div>
@@ -91,66 +101,61 @@
         <div class="grid grid-4" style="margin-bottom: 48px;">
             <a href="/galaxy" style="text-decoration: none;">
                 <div class="card" style="cursor: pointer;">
-                    <h3 style="margin-bottom: 16px;">🌌 3D Galaxy</h3>
+                    <h3 style="margin-bottom: 16px;">&#x1F30C; 3D Galaxy</h3>
                     <p style="font-size: 0.875rem; color: rgba(255,255,255,0.7);">Real-time 3D visualization of NEO orbital space with threat-based coloring</p>
                 </div>
             </a>
             
             <a href="/radar" style="text-decoration: none;">
                 <div class="card" style="cursor: pointer;">
-                    <h3 style="margin-bottom: 16px;">📡 Earth Radar</h3>
+                    <h3 style="margin-bottom: 16px;">&#x1F4E1; Earth Radar</h3>
                     <p style="font-size: 0.875rem; color: rgba(255,255,255,0.7);">Proximity analysis visualization showing MOID vs threat correlation</p>
                 </div>
             </a>
             
             <a href="/watchlist" style="text-decoration: none;">
                 <div class="card" style="cursor: pointer;">
-                    <h3 style="margin-bottom: 16px;">⚠️ Watchlist</h3>
+                    <h3 style="margin-bottom: 16px;">&#x26A0;&#xFE0F; Watchlist</h3>
                     <p style="font-size: 0.875rem; color: rgba(255,255,255,0.7);">Auto-updating ranked table of highest priority threat objects</p>
                 </div>
             </a>
             
             <a href="/trajectory" style="text-decoration: none;">
                 <div class="card" style="cursor: pointer;">
-                    <h3 style="margin-bottom: 16px;">🛸 Trajectory</h3>
+                    <h3 style="margin-bottom: 16px;">&#x1F6F8; Trajectory</h3>
                     <p style="font-size: 0.875rem; color: rgba(255,255,255,0.7);">AI-powered orbital path detection and close approach forecasting</p>
                 </div>
             </a>
             
             <a href="/ml-dashboard" style="text-decoration: none;">
                 <div class="card" style="cursor: pointer;">
-                    <h3 style="margin-bottom: 16px;">🤖 ML Dashboard</h3>
+                    <h3 style="margin-bottom: 16px;">&#x1F916; ML Dashboard</h3>
                     <p style="font-size: 0.875rem; color: rgba(255,255,255,0.7);">Model performance metrics, explainability, and anomaly detection</p>
                 </div>
             </a>
             
             <a href="/multi-view" style="text-decoration: none;">
                 <div class="card" style="cursor: pointer;">
-                    <h3 style="margin-bottom: 16px;">📊 Multi-View</h3>
+                    <h3 style="margin-bottom: 16px;">&#x1F4CA; Multi-View</h3>
                     <p style="font-size: 0.875rem; color: rgba(255,255,255,0.7);">Synchronized multi-panel visualization dashboard</p>
                 </div>
             </a>
             
             <a href="/analytics" style="text-decoration: none;">
                 <div class="card" style="cursor: pointer;">
-                    <h3 style="margin-bottom: 16px;">📈 Analytics</h3>
+                    <h3 style="margin-bottom: 16px;">&#x1F4C8; Analytics</h3>
                     <p style="font-size: 0.875rem; color: rgba(255,255,255,0.7);">Comprehensive statistical analysis and orbital mechanics</p>
                 </div>
             </a>
             
-            <a href="/historical-timeline" style="text-decoration: none;">
+            <a href="/timeline" style="text-decoration: none;">
                 <div class="card" style="cursor: pointer;">
-                    <h3 style="margin-bottom: 16px;">📅 Timeline</h3>
+                    <h3 style="margin-bottom: 16px;">&#x1F4C5; Timeline</h3>
                     <p style="font-size: 0.875rem; color: rgba(255,255,255,0.7);">Historical and future close approach analysis (1900-2100)</p>
                 </div>
             </a>
             
-            <a href="/user-dashboard" style="text-decoration: none;">
-                <div class="card" style="cursor: pointer;">
-                    <h3 style="margin-bottom: 16px;">👤 User Dashboard</h3>
-                    <p style="font-size: 0.875rem; color: rgba(255,255,255,0.7);">Personal watchlist, alerts, and account settings</p>
-                </div>
-            </a>
+
         </div>
 
         <!-- Recent Alerts -->
@@ -179,6 +184,17 @@
         
         updateTimestamp();
         setInterval(updateTimestamp, 1000);
+
+        // Fetch real stats from API
+        fetch('/api/stats')
+            .then(res => res.json())
+            .then(s => {
+                document.getElementById('statTotal').textContent   = s.total_objects.toLocaleString();
+                document.getElementById('statCritical').textContent = s.critical_count.toLocaleString();
+                document.getElementById('statPHA').textContent    = s.pha_count.toLocaleString();
+                document.getElementById('statLow').textContent    = s.low_count.toLocaleString();
+            })
+            .catch(() => {});
         
         // Fetch recent alerts
         fetch('/api/watchlist')
@@ -194,7 +210,7 @@
                             <div style="display: flex; justify-content: space-between; align-items: center;">
                                 <div>
                                     <a href="${item.url}" target="_blank" style="color: #00bfff; text-decoration: none; font-weight: 500;">
-                                        #${idx + 1} - ${item.name} ↗
+                                        #${idx + 1} - ${item.name} &#x2197;
                                     </a>
                                     <div style="font-size: 0.75rem; color: rgba(255,255,255,0.5); margin-top: 2px;">
                                         SPKID: ${item.spkid}

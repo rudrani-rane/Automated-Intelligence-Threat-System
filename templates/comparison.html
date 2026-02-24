@@ -9,20 +9,25 @@
 </head>
 <body>
     <nav class="navbar">
-        <a href="/" class="nav-logo">ATIS</a>
-        <div class="nav-links">
-            <a href="/">Home</a>
-            <a href="/galaxy">Galaxy</a>
-            <a href="/radar">Radar</a>
-            <a href="/watchlist">Watchlist</a>
-            <a href="/trajectory">Trajectory</a>
-            <a href="/orbital-simulator">Orbits</a>
-            <a href="/time-machine">Time Machine</a>
-            <a href="/analytics">Analytics</a>
-            <a href="/multi-view">Multi-View</a>
-            <a href="/approach-corridor">Corridor</a>
-            <a href="/impact-simulation">Impact</a>
-            <a href="/comparison" class="active">Compare</a>
+        <div class="nav-content">
+            <div class="logo">🛰️ ATIS</div>
+            <ul class="nav-links">
+                <li><a href="/">Home</a></li>
+                <li><a href="/galaxy">Galaxy</a></li>
+                <li><a href="/radar">Radar</a></li>
+                <li><a href="/watchlist">Watchlist</a></li>
+                <li><a href="/trajectory">Trajectory</a></li>
+                <li><a href="/timeline">Timeline</a></li>
+                <li><a href="/analytics">Analytics</a></li>
+                <li><a href="/multi-view">Multi-View</a></li>
+                <li><a href="/ml-dashboard">ML</a></li>
+                <li><a href="/orbital-mechanics">Orbital</a></li>
+                <li><a href="/impact-calculator">Impact Calc</a></li>
+                <li><a href="/nbody">N-Body</a></li>
+                <li><a href="/alerts">Alerts</a></li>
+                <li><a href="/trends">Trends</a></li>
+                <li><a href="/comparison" class="active">Compare</a></li>
+            </ul>
         </div>
     </nav>
 
@@ -213,9 +218,153 @@
                     <div id="riskChart"></div>
                 </div>
             </div>
+
+            <!-- 3D Orbit Overlay -->
+            <div class="comparison-section">
+                <h2>3D Orbit Overlay</h2>
+                <p style="color:#aaa;margin-bottom:10px;">All selected asteroid orbits rendered in the same heliocentric frame alongside Earth's orbit.</p>
+                <div id="orbitOverlayChart" style="height:500px;"></div>
+            </div>
+
+            <!-- Impact Energy Comparison -->
+            <div class="comparison-section">
+                <h2>Impact Energy Comparison</h2>
+                <p style="color:#aaa;margin-bottom:10px;">Estimated kinetic energy at Earth impact (assumes 20 km/s if v_rel unavailable, albedo=0.14 for diameter estimate).</p>
+                <div id="impactEnergyChart" style="height:300px;"></div>
+            </div>
         </div>
     </div>
 
     <script src="/static/js/comparison.js"></script>
+    <script>
+    // Auto-load defaults: Apophis, Bennu, Eros
+    (async function autoLoad() {
+        const defaults = [
+            { id: '20099942', slot: 'A' },
+            { id: '2101955',  slot: 'B' },
+            { id: '2000433',  slot: 'C' }
+        ];
+        for (const d of defaults) {
+            try {
+                await selectAsteroid(d.id, d.slot);
+            } catch(e) { console.warn('Auto-load failed for', d.id, e); }
+        }
+        // Trigger compare
+        const btn = document.getElementById('compareBtn');
+        if (!btn.disabled) btn.click();
+    })();
+
+    // Kepler solver for orbit overlay
+    function solveKeplerComp(M_deg, e) {
+        let M = M_deg * Math.PI / 180;
+        let E = M;
+        for (let i = 0; i < 50; i++) {
+            const dE = (M - E + e * Math.sin(E)) / (1 - e * Math.cos(E));
+            E += dE;
+            if (Math.abs(dE) < 1e-10) break;
+        }
+        return E;
+    }
+    function orbitPoints(a, e, i_deg, om_deg, w_deg, N=120) {
+        if (!a || !e) return { x:[], y:[], z:[] };
+        const deg = Math.PI/180;
+        const i = i_deg*deg, om = om_deg*deg, w = w_deg*deg;
+        const xs=[], ys=[], zs=[];
+        for (let k=0; k<=N; k++) {
+            const M = (k/N)*360;
+            const E = solveKeplerComp(M, e);
+            const nu = 2*Math.atan2(Math.sqrt(1+e)*Math.sin(E/2), Math.sqrt(1-e)*Math.cos(E/2));
+            const r = a*(1-e*Math.cos(E));
+            // Perifocal
+            const xp = r*Math.cos(nu), yp = r*Math.sin(nu);
+            // Ecliptic
+            const x = (Math.cos(om)*Math.cos(w)-Math.sin(om)*Math.sin(w)*Math.cos(i))*xp + (-Math.cos(om)*Math.sin(w)-Math.sin(om)*Math.cos(w)*Math.cos(i))*yp;
+            const y = (Math.sin(om)*Math.cos(w)+Math.cos(om)*Math.sin(w)*Math.cos(i))*xp + (-Math.sin(om)*Math.sin(w)+Math.cos(om)*Math.cos(w)*Math.cos(i))*yp;
+            const z = (Math.sin(w)*Math.sin(i))*xp + (Math.cos(w)*Math.sin(i))*yp;
+            xs.push(x); ys.push(y); zs.push(z);
+        }
+        return { x:xs, y:ys, z:zs };
+    }
+
+    // Hook into post-compare to render extra charts
+    const origRender = window.renderRiskChart;
+    document.getElementById('compareBtn').addEventListener('click', () => {
+        setTimeout(renderOrbitOverlay, 300);
+        setTimeout(renderImpactEnergy, 300);
+    }, true);
+
+    function renderOrbitOverlay() {
+        const DARK = { paper_bgcolor:'rgba(0,0,0,0)', plot_bgcolor:'rgba(10,10,25,0.95)',
+            font:{family:'Orbitron,monospace',color:'#00d4ff',size:11} };
+        const colors = ['#ff4444','#00d4ff','#44ff88','#ffaa00'];
+        const traces = [];
+        // Earth orbit reference
+        const earth = orbitPoints(1.000, 0.0167, 0.000, 174.9, 288.1);
+        traces.push({ type:'scatter3d', mode:'lines', x:earth.x, y:earth.y, z:earth.z,
+            line:{color:'#4488ff',width:2}, name:'Earth', opacity:0.6 });
+        // Sun
+        traces.push({ type:'scatter3d', mode:'markers', x:[0], y:[0], z:[0],
+            marker:{size:8,color:'#ffdd00'}, name:'Sun' });
+
+        const asts = [window.asteroidA, window.asteroidB, window.asteroidC].filter(Boolean);
+        asts.forEach((ast, idx) => {
+            const oe = ast.orbital_elements || {};
+            const a = parseFloat(oe.semi_major_axis||ast.a||0);
+            const e = parseFloat(oe.eccentricity||ast.e||0);
+            const ii = parseFloat(oe.inclination||ast.i||0);
+            const om = parseFloat(oe.longitude_ascending_node||ast.om||0);
+            const w  = parseFloat(oe.argument_perihelion||ast.w||0);
+            const pts = orbitPoints(a, e, ii, om, w);
+            traces.push({ type:'scatter3d', mode:'lines', x:pts.x, y:pts.y, z:pts.z,
+                line:{color:colors[idx+1],width:3}, name:ast.name||`SPKID ${ast.spkid}` });
+        });
+        Plotly.newPlot('orbitOverlayChart', traces, {
+            ...DARK, margin:{l:0,r:0,t:20,b:0},
+            scene:{ xaxis:{title:'X (AU)',gridcolor:'rgba(0,212,255,0.15)',color:'#00d4ff'},
+                    yaxis:{title:'Y (AU)',gridcolor:'rgba(0,212,255,0.15)',color:'#00d4ff'},
+                    zaxis:{title:'Z (AU)',gridcolor:'rgba(0,212,255,0.15)',color:'#00d4ff'},
+                    bgcolor:'rgba(5,5,20,1)' },
+            legend:{font:{color:'#00d4ff'}}
+        }, { responsive:true });
+    }
+
+    function renderImpactEnergy() {
+        const asts = [window.asteroidA, window.asteroidB, window.asteroidC].filter(Boolean);
+        const estimateDiam = H => H ? 1329/Math.sqrt(0.14)*Math.pow(10,-0.2*H) : 0;
+        const names = [], energies = [], colors2 = [];
+        asts.forEach(ast => {
+            const H = ast.H || (ast.orbital_elements?.H);
+            const dKm = estimateDiam(parseFloat(H)||18);
+            const dM = dKm * 1000;
+            const rho = 3000; // kg/m³
+            const v = (ast.v_rel || 20) * 1000; // m/s
+            const vol = (4/3)*Math.PI*Math.pow(dM/2,3);
+            const mass = rho * vol;
+            const ke_J = 0.5 * mass * v * v;
+            const ke_Mt = ke_J / 4.184e15;
+            names.push(ast.name || `SPKID ${ast.spkid}`);
+            energies.push(ke_Mt);
+            colors2.push(ke_Mt > 1000 ? '#ff0000' : ke_Mt > 10 ? '#ffaa00' : '#00d4ff');
+        });
+        // Add historical references
+        names.push('Tunguska (1908)', 'Chicxulub (66Ma)');
+        energies.push(10, 1e8);
+        colors2.push('rgba(100,100,100,0.7)', 'rgba(80,0,80,0.7)');
+
+        Plotly.newPlot('impactEnergyChart', [{
+            type:'bar', x:names, y:energies,
+            marker:{ color:colors2, line:{color:'#00d4ff',width:1} },
+            text: energies.map(e => e >= 1e6 ? (e/1e6).toFixed(1)+'Gt' : e >= 1e3 ? (e/1e3).toFixed(1)+'Gt' : e.toFixed(2)+'Mt'),
+            textposition:'outside',
+            hovertemplate:'%{x}<br>%{y:.2e} Mt TNT<extra></extra>'
+        }], {
+            paper_bgcolor:'rgba(0,0,0,0)', plot_bgcolor:'rgba(10,10,25,0.95)',
+            font:{family:'Orbitron,monospace',color:'#00d4ff',size:11},
+            margin:{l:60,r:20,t:20,b:80},
+            yaxis:{ type:'log', title:'Energy (Mt TNT)', gridcolor:'rgba(0,212,255,0.1)', color:'#00d4ff' },
+            xaxis:{ gridcolor:'rgba(0,212,255,0.1)', color:'#00d4ff' }
+        }, { responsive:true });
+    }
+    </script>
 </body>
 </html>
