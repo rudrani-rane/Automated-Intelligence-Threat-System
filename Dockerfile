@@ -19,11 +19,12 @@ COPY requirements.txt .
 
 # Install CPU-only PyTorch first (avoids downloading the ~1.5GB CUDA build,
 # which is useless on free-tier CPU servers like HF Spaces / Render).
+# Use --extra-index-url so PyPI stays available for dependency resolution.
 RUN pip install --no-cache-dir \
     torch==2.10.0+cpu \
     torchvision==0.25.0+cpu \
     torchaudio==2.10.0+cpu \
-    --index-url https://download.pytorch.org/whl/cpu
+    --extra-index-url https://download.pytorch.org/whl/cpu
 
 # Install remaining dependencies (torch lines stripped so pip won't re-download CUDA build)
 RUN grep -v -E '^(torch|torchvision|torchaudio)==' requirements.txt > /tmp/req_notorch.txt && \
