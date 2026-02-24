@@ -3,3 +3,4 @@ src/data/__pycache__/
 *.pyc
 *.pyo
 docs/
+env/
