@@ -44,14 +44,9 @@ def trajectory_page(request: Request):
     """Trajectory Detection System"""
     return templates.TemplateResponse("trajectory.html", {"request": request})
 
-@app.get("/orbital-simulator")
-def orbital_simulator_page(request: Request):
-    """Real Keplerian Orbital Path Simulator"""
-    return templates.TemplateResponse("orbital_simulator.html", {"request": request})
-
-@app.get("/time-machine")
-def time_machine_page(request: Request):
-    """Time-Based Asteroid Position Viewer"""
+@app.get("/timeline")
+def timeline_page(request: Request):
+    """Time-Based Asteroid Position Viewer & Timeline Analysis"""
     return templates.TemplateResponse("time_machine.html", {"request": request})
 
 @app.get("/analytics")
@@ -89,15 +84,30 @@ def ml_dashboard_page(request: Request):
     """Machine Learning Performance & Explainability Dashboard"""
     return templates.TemplateResponse("ml_dashboard.html", {"request": request})
 
-@app.get("/user-dashboard")
-def user_dashboard_page(request: Request):
-    """User Account Dashboard and Watchlist"""
-    return templates.TemplateResponse("user_dashboard.html", {"request": request})
-
 @app.get("/alerts")
 def alerts_page(request: Request):
     """Real-Time Alert Monitoring Dashboard"""
     return templates.TemplateResponse("alerts.html", {"request": request})
+
+@app.get("/orbital-mechanics")
+def orbital_mechanics_page(request: Request):
+    """Interactive Orbital Mechanics & Kepler Solver"""
+    return templates.TemplateResponse("orbital_mechanics.html", {"request": request})
+
+@app.get("/impact-calculator")
+def impact_calculator_page(request: Request):
+    """Asteroid Impact Energy & Damage Calculator"""
+    return templates.TemplateResponse("impact_calculator.html", {"request": request})
+
+@app.get("/nbody")
+def nbody_page(request: Request):
+    """N-Body Gravitational Simulation"""
+    return templates.TemplateResponse("nbody.html", {"request": request})
+
+@app.get("/trends")
+def trends_page(request: Request):
+    """Threat Trend Analysis Dashboard"""
+    return templates.TemplateResponse("trends.html", {"request": request})
 
 @app.on_event("startup")
 async def start_background_tasks():

@@ -168,8 +168,16 @@ a:hover {
 
 .navbar .nav-links {
     display: flex;
-    gap: var(--space-lg);
+    gap: var(--space-md);
     list-style: none;
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none; /* Firefox */
+    padding-bottom: 2px;
+}
+.navbar .nav-links::-webkit-scrollbar {
+    display: none; /* Chrome/Safari */
 }
 
 .navbar .nav-links a {
@@ -180,6 +188,8 @@ a:hover {
     padding: var(--space-sm) var(--space-md);
     border-radius: 4px;
     transition: all var(--transition-base);
+    white-space: nowrap;
+    flex-shrink: 0;
 }
 
 .navbar .nav-links a:hover {

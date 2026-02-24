@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, Query, Depends, Header, WebSocket, WebSocketDisconnect
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from src.web.state import MU, THREAT, MOID, SPKIDS, ASTEROID_METADATA
+from src.web.state import MU, THREAT, MOID, SPKIDS, ASTEROID_METADATA, graph, model, RAW_PHA, RAW_MOID, PHA_PROB, PHA_PROB
 from src.web.sbdb_client import get_asteroid_name, get_jpl_url
 from src.utils.orbital_mechanics import (
     generate_orbital_path, calculate_orbital_position, calculate_velocity,
@@ -33,33 +33,89 @@ impact_calc = ImpactCalculator()
 
 def get_asteroid_index(asteroid_id: str) -> int:
     """
-    Helper function to get asteroid index from SPKID
-    Raises HTTPException if asteroid not found
+    Helper function to get asteroid index from SPKID or name.
+    Raises HTTPException if asteroid not found.
     """
+    stripped = asteroid_id.strip()
+    # Try numeric SPKID first
     try:
-        spkid = int(asteroid_id)
+        spkid = int(stripped)
         idx = np.where(SPKIDS == spkid)[0]
-        if len(idx) == 0:
-            raise HTTPException(status_code=404, detail=f"Asteroid {asteroid_id} not found")
-        return int(idx[0])
+        if len(idx) > 0:
+            return int(idx[0])
     except ValueError:
-        raise HTTPException(status_code=400, detail=f"Invalid asteroid ID: {asteroid_id}")
+        pass
+    # Try name lookup (case-insensitive prefix match)
+    lower = stripped.lower()
+    for i, sid in enumerate(SPKIDS):
+        name = get_asteroid_name(int(sid)).lower()
+        if lower in name or name.startswith(lower):
+            return i
+    raise HTTPException(status_code=404, detail=f"Asteroid '{asteroid_id}' not found")
+
+
+def sanitize_for_json(value):
+    """
+    Sanitize numeric values for JSON serialization
+    Replaces NaN and Inf with safe values
+    """
+    if isinstance(value, (list, np.ndarray)):
+        return [sanitize_for_json(v) for v in value]
+    elif isinstance(value, dict):
+        return {k: sanitize_for_json(v) for k, v in value.items()}
+    elif isinstance(value, (float, np.floating)):
+        if np.isnan(value) or np.isinf(value):
+            return 0.0
+        return float(value)
+    elif isinstance(value, (int, np.integer)):
+        return int(value)
+    else:
+        return value
 
 
 @router.get("/galaxy")
 def galaxy_data():
     """3D coordinates and threat scores for orbital galaxy visualization"""
     # Create list of objects with names and links
+    # Use real orbital elements for positioning instead of untrained GNN embeddings
     objects = []
     for i in range(len(SPKIDS)):
         spkid = int(SPKIDS[i])
+        
+        # Get orbital elements from graph features
+        # Features: [H, e, a, i, om, w, ma, q, ad, per_y, n, moid]
+        eccentricity = float(graph.x[i, 1])
+        semi_major_axis = float(graph.x[i, 2])  # AU
+        inclination = float(graph.x[i, 3])  # degrees
+        
+        # Convert orbital elements to 3D Cartesian coordinates
+        # Use semi-major axis and eccentricity for radial distance
+        # Use inclination for z-axis variation
+        radius = semi_major_axis * (1 - eccentricity)  # Perihelion distance
+        
+        # Create spread based on orbital parameters
+        # Use longitude and argument for angular distribution
+        angle_x = float(graph.x[i, 4]) if graph.x.shape[1] > 4 else (i * 137.508) % 360  # Golden angle
+        angle_y = float(graph.x[i, 5]) if graph.x.shape[1] > 5 else (i * 222.492) % 360
+        
+        # Convert to radians
+        import math
+        theta = math.radians(angle_x)
+        phi = math.radians(angle_y)
+        incl_rad = math.radians(inclination)
+        
+        # Spherical to Cartesian conversion with orbital mechanics
+        x = radius * math.cos(theta) * math.cos(incl_rad)
+        y = radius * math.sin(theta) * math.cos(incl_rad)
+        z = radius * math.sin(incl_rad)
+        
         objects.append({
             "spkid": spkid,
             "name": get_asteroid_name(spkid),
             "url": get_jpl_url(spkid),
-            "x": float(MU[i, 0]),
-            "y": float(MU[i, 1]),
-            "z": float(MU[i, 2]),
+            "x": x,
+            "y": y,
+            "z": z,
             "threat": float(THREAT[i])
         })
     
@@ -88,6 +144,14 @@ def watchlist():
         record = row.to_dict()
         record["name"] = get_asteroid_name(spkid)
         record["url"] = get_jpl_url(spkid)
+        
+        # Add moid from global data
+        idx = np.where(SPKIDS == spkid)[0]
+        if len(idx) > 0:
+            record["moid"] = float(MOID[idx[0]])
+        else:
+            record["moid"] = None
+        
         records.append(record)
     
     return {"watchlist": records}
@@ -117,16 +181,23 @@ def live_data():
 
 @router.get("/stats")
 def system_stats():
-    """System statistics and metrics"""
+    """System statistics and metrics — all values derived from real data"""
     return {
-        "total_objects": len(THREAT),
+        "total_objects": int(len(THREAT)),
+        "pha_count": int(RAW_PHA.sum()),
+        "critical_count": int(np.sum(THREAT > 0.7)),
+        "high_count": int(np.sum((THREAT > 0.5) & (THREAT <= 0.7))),
+        "medium_count": int(np.sum((THREAT > 0.3) & (THREAT <= 0.5))),
+        "low_count": int(np.sum(THREAT <= 0.3)),
+        # Legacy keys kept for compatibility
         "high_risk_count": int(np.sum(THREAT > 0.7)),
         "medium_risk_count": int(np.sum((THREAT > 0.4) & (THREAT <= 0.7))),
         "low_risk_count": int(np.sum(THREAT <= 0.4)),
         "average_threat": float(np.mean(THREAT)),
         "max_threat": float(np.max(THREAT)),
         "min_threat": float(np.min(THREAT)),
-        "average_moid": float(np.mean(MOID)),
+        "average_moid_au": float(np.mean(RAW_MOID)),
+        "min_moid_au": float(np.min(RAW_MOID)),
         "model_status": "operational",
         "live_updates_active": LIVE_POINTS["mu"] is not None
     }
@@ -153,7 +224,9 @@ def get_all_asteroids():
                 "name": get_asteroid_name(spkid),
                 "url": get_jpl_url(spkid),
                 "threat": float(THREAT[i]),
+                "threat_score": float(THREAT[i]),
                 "moid": float(MOID[i]),
+                "pha_prob": float(PHA_PROB[i]),
                 "neo": bool(row.get('neo', 0)),
                 "pha": bool(row.get('pha', 0)),
                 "H": float(row.get('H', 0)),  # Absolute magnitude
@@ -163,7 +236,9 @@ def get_all_asteroids():
                 "q": float(row.get('q', 0)),  # Perihelion distance
                 "ad": float(row.get('ad', 0)),  # Aphelion distance
                 "per_y": float(row.get('per_y', 0)),  # Orbital period (years)
-                "data_arc": float(row.get('data_arc', 0))  # Observation arc (days)
+                "data_arc": float(row.get('data_arc', 0)),  # Observation arc (days, z-scored)
+                # n_obs_used: estimated from raw data_arc (1 obs session per ~8 days)
+                "n_obs_used": int(max(0, float(ASTEROID_METADATA.get(spkid, {}).get('data_arc', 0) or 0)) // 8)
             })
         except (IndexError, KeyError):
             # Fallback if data not in CSV
@@ -172,7 +247,9 @@ def get_all_asteroids():
                 "name": get_asteroid_name(spkid),
                 "url": get_jpl_url(spkid),
                 "threat": float(THREAT[i]),
+                "threat_score": float(THREAT[i]),
                 "moid": float(MOID[i]),
+                "pha_prob": float(PHA_PROB[i]),
                 "neo": False,
                 "pha": False,
                 "H": 0,
@@ -182,7 +259,8 @@ def get_all_asteroids():
                 "q": 0,
                 "ad": 0,
                 "per_y": 0,
-                "data_arc": 0
+                "data_arc": 0,
+                "n_obs_used": 0
             })
     
     return asteroids
@@ -219,6 +297,9 @@ def asteroid_details(asteroid_id: str):
                 "perihelion": metadata.get("q", "N/A"),
                 "aphelion": metadata.get("ad", "N/A"),
                 "period_years": metadata.get("per_y", "N/A"),
+                "longitude_ascending_node": metadata.get("om", 0),
+                "argument_perihelion": metadata.get("w", 0),
+                "mean_anomaly": metadata.get("ma", 0),
             },
             "classification": metadata.get("class", "Unknown"),
             "absolute_magnitude": metadata.get("H", "N/A"),
@@ -254,22 +335,26 @@ def proximity_zones():
 
 @router.get("/search")
 def search_asteroids(query: str = ""):
-    """Search asteroids by ID or name"""
-    import pandas as pd
-    
-    if not query:
-        return {"results": []}
-    
-    df = pd.read_csv("data/processed/processed_asteroids.csv")
-    
-    # Search by spkid
-    results = df[df["spkid"].astype(str).str.contains(query, case=False)]
-    
-    return {
-        "query": query,
-        "count": len(results),
-        "results": results.head(20).to_dict(orient="records")
-    }
+    """Search asteroids by SPKID or name"""
+    if not query or len(query) < 1:
+        return {"results": [], "count": 0}
+
+    query_lower = query.lower().strip()
+    results = []
+    for i, spkid in enumerate(SPKIDS):
+        sid = int(spkid)
+        name = get_asteroid_name(sid)
+        if query_lower in str(sid) or query_lower in name.lower():
+            results.append({
+                "spkid": str(sid),
+                "name": name,
+                "threat": float(THREAT[i]),
+                "moid": float(MOID[i])
+            })
+            if len(results) >= 30:
+                break
+
+    return {"query": query, "count": len(results), "results": results}
 
 
 @router.get("/orbital-path/{asteroid_id}")
@@ -437,28 +522,36 @@ def get_system_at_time(
     
     positions = []
     
-    for i, spkid in enumerate(SPKIDS[:limit]):
-        metadata = ASTEROID_METADATA.get(int(spkid))
+    for i in range(min(limit, len(SPKIDS))):
+        spkid = int(SPKIDS[i])
+        metadata = ASTEROID_METADATA.get(spkid)
         
         if metadata:
             a = metadata.get("a", 1.0)
             e = metadata.get("e", 0.0)
-            i = metadata.get("i", 0.0)
+            inc = metadata.get("i", 0.0)
             om = metadata.get("om", 0.0)
             w = metadata.get("w", 0.0)
             
             period_days = calculate_orbital_period(a) * 365.25
             M = (time_offset_days / period_days) * 360.0
             
-            pos = calculate_orbital_position(a, e, i, om, w, M)
+            pos = calculate_orbital_position(a, e, inc, om, w, M)
+            
+            # Get threat score safely
+            threat_val = 0.0
+            try:
+                threat_val = float(THREAT[i])
+            except (IndexError, TypeError, ValueError):
+                pass
             
             positions.append({
-                "spkid": int(spkid),
-                "name": get_asteroid_name(int(spkid)),
-                "x": pos[0],
-                "y": pos[1],
-                "z": pos[2],
-                "threat": float(THREAT[i]) if i < len(THREAT) else 0.0
+                "spkid": spkid,
+                "name": get_asteroid_name(spkid),
+                "x": float(pos[0]),
+                "y": float(pos[1]),
+                "z": float(pos[2]),
+                "threat": threat_val
             })
     
     # Earth position (circular orbit approximation)
@@ -562,11 +655,14 @@ def get_enhanced_statistics():
     # Orbital class counts
     orbital_classes = df_raw["class"].value_counts().to_dict() if "class" in df_raw.columns else {}
     
-    # PHA count
-    pha_count = int(df_raw["pha"].sum()) if "pha" in df_raw.columns else 0
-    
+    # PHA count — column contains "Y"/"N" strings
+    if "pha" in df_raw.columns:
+        pha_count = int((df_raw["pha"].astype(str).str.upper() == "Y").sum())
+    else:
+        pha_count = 0
+
     # Discovery statistics (if data_arc available)
-    avg_observation_arc = float(df_raw["data_arc"].mean()) if "data_arc" in df_raw.columns else 0
+    avg_observation_arc = float(pd.to_numeric(df_raw["data_arc"], errors="coerce").mean()) if "data_arc" in df_raw.columns else 0
     
     return {
         "total_objects": len(THREAT),
@@ -588,7 +684,7 @@ def get_enhanced_statistics():
         "orbital_classes": orbital_classes,
         "observation_metrics": {
             "average_data_arc_days": avg_observation_arc,
-            "well_observed_count": int(df_raw["data_arc"].gt(10000).sum()) if "data_arc" in df_raw.columns else 0
+            "well_observed_count": int(pd.to_numeric(df_raw["data_arc"], errors="coerce").gt(10000).sum()) if "data_arc" in df_raw.columns else 0
         },
         "model_performance": {
             "average_threat_score": float(np.mean(THREAT)),
@@ -612,6 +708,54 @@ async def get_multi_source_data(asteroid_id: str):
         return combined_data
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error fetching multi-source data: {str(e)}")
+
+
+@router.get("/cad-history")
+async def cad_history(
+    dist_max: str = Query(default="0.05", description="Max distance in AU"),
+    date_min: str = Query(default="1900-01-01"),
+    date_max: str = Query(default="2100-01-01"),
+    limit: int = Query(default=200, ge=1, le=1000)
+):
+    """Proxy for NASA JPL CAD close-approach database — 1900-2100"""
+    import httpx
+    url = (
+        f"https://ssd-api.jpl.nasa.gov/cad.api"
+        f"?dist-max={dist_max}&date-min={date_min}&date-max={date_max}"
+        f"&fullname=true&sort=dist&limit={limit}"
+    )
+    try:
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            resp = await client.get(url)
+            resp.raise_for_status()
+            raw = resp.json()
+    except Exception as exc:
+        # Fallback: use in-memory close-approach simulation
+        approaches = []
+        for i in range(min(100, len(SPKIDS))):
+            if MOID[i] < float(dist_max):
+                approaches.append({
+                    "des": get_asteroid_name(int(SPKIDS[i])),
+                    "moid": float(MOID[i]),
+                    "threat": float(THREAT[i])
+                })
+        return {"source": "local", "count": len(approaches), "data": approaches}
+
+    # Parse CAD API response fields: des, cd, dist, h, v_rel, etc.
+    fields = raw.get("fields", [])
+    rows = raw.get("data", [])
+    results = []
+    for row in rows:
+        entry = dict(zip(fields, row))
+        results.append({
+            "name": entry.get("des", ""),
+            "date": entry.get("cd", ""),
+            "distance_au": float(entry.get("dist", 0)),
+            "distance_ld": float(entry.get("dist_min", entry.get("dist", 0))) * 389.17,
+            "velocity_km_s": float(entry.get("v_rel", 0) or 0),
+            "h_mag": entry.get("h", ""),
+        })
+    return {"source": "nasa_cad", "count": len(results), "data": results}
 
 
 @router.get("/historical-timeline/{asteroid_id}")
@@ -794,30 +938,18 @@ def explain_prediction(asteroid_id: str):
     """
     try:
         idx = get_asteroid_index(asteroid_id)
+        spkid = int(SPKIDS[idx])
         
-        # Create minimal graph data for explanation
-        # In production, this should use the actual graph structure
-        node_features = ASTEROID_METADATA[idx]
-        
-        # Create simple graph with self-loops for single node analysis
-        edge_index = torch.tensor([[idx], [idx]], dtype=torch.long)
-        edge_attr = torch.tensor([[1.0, 0.0, 0.0]], dtype=torch.float)
-        
-        graph_data = Data(
-            x=torch.tensor(ASTEROID_METADATA, dtype=torch.float32),
-            edge_index=edge_index,
-            edge_attr=edge_attr
-        )
-        
-        # Get explanation
-        explanation = explainer.explain_prediction(graph_data, idx, asteroid_id)
+        # Get explanation using global graph
+        explanation = explainer.explain_prediction(graph, idx, str(spkid))
         
         # Add asteroid metadata
-        explanation['asteroid_name'] = get_asteroid_name(int(SPKIDS[idx]))
+        explanation['asteroid_name'] = get_asteroid_name(spkid)
         explanation['threat_score'] = float(THREAT[idx])
         explanation['moid'] = float(MOID[idx])
         
-        return explanation
+        # Sanitize for JSON
+        return sanitize_for_json(explanation)
         
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -833,27 +965,19 @@ def ensemble_prediction(asteroid_id: str):
     """
     try:
         idx = get_asteroid_index(asteroid_id)
+        spkid = int(SPKIDS[idx])
         
-        # Create graph data
-        edge_index = torch.tensor([[idx], [idx]], dtype=torch.long)
-        edge_attr = torch.tensor([[1.0, 0.0, 0.0]], dtype=torch.float)
-        
-        graph_data = Data(
-            x=torch.tensor(ASTEROID_METADATA, dtype=torch.float32),
-            edge_index=edge_index,
-            edge_attr=edge_attr
-        )
-        
-        # Get ensemble prediction
-        prediction = ensemble_predictor.predict_ensemble(graph_data, idx)
+        # Get ensemble prediction using global graph
+        prediction = ensemble_predictor.predict_ensemble(graph, idx)
         
         # Add asteroid metadata
         prediction['asteroid_id'] = asteroid_id
-        prediction['asteroid_name'] = get_asteroid_name(int(SPKIDS[idx]))
+        prediction['asteroid_name'] = get_asteroid_name(spkid)
         prediction['actual_threat_score'] = float(THREAT[idx])
         prediction['moid'] = float(MOID[idx])
         
-        return prediction
+        # Sanitize for JSON
+        return sanitize_for_json(prediction)
         
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -869,23 +993,26 @@ def anomaly_detection(asteroid_id: str):
     """
     try:
         idx = get_asteroid_index(asteroid_id)
+        spkid = int(SPKIDS[idx])
         
-        # Get features for this asteroid
-        features = ASTEROID_METADATA[idx]
+        # Get features for this asteroid from graph
+        features = graph.x[idx].cpu().numpy()
         
         # Fit anomaly detector on full population if not already fitted
         if not anomaly_detector.is_fitted:
-            anomaly_detector.fit(ASTEROID_METADATA)
+            all_features = graph.x.cpu().numpy()
+            anomaly_detector.fit(all_features)
         
         # Detect anomalies
-        result = anomaly_detector.detect_anomaly(features, asteroid_id)
+        result = anomaly_detector.detect_anomaly(features, str(spkid))
         
         # Add asteroid metadata
-        result['asteroid_name'] = get_asteroid_name(int(SPKIDS[idx]))
+        result['asteroid_name'] = get_asteroid_name(spkid)
         result['threat_score'] = float(THREAT[idx])
         result['moid'] = float(MOID[idx])
         
-        return result
+        # Sanitize for JSON
+        return sanitize_for_json(result)
         
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -893,92 +1020,114 @@ def anomaly_detection(asteroid_id: str):
         raise HTTPException(status_code=500, detail=f"Anomaly detection error: {str(e)}")
 
 
+@router.get("/asteroids-list")
+def asteroids_list():
+    """Lightweight list of asteroid IDs and names for search dropdowns"""
+    results = []
+    for i in range(len(SPKIDS)):
+        spkid = int(SPKIDS[i])
+        results.append({
+            "spkid": str(spkid),
+            "name": get_asteroid_name(spkid),
+            "threat": float(THREAT[i]),
+            "moid": float(MOID[i])
+        })
+    return {"asteroids": results, "total": len(results)}
+
+
 @router.get("/ml-performance")
 def ml_performance_metrics():
     """
-    Get ML model performance metrics
-    Returns accuracy, precision, recall, F1, ROC-AUC, etc.
+    GNN + Gradient Boosting PHA classifier performance metrics.
+    Uses PHA_PROB (from GB classifier trained on GNN embeddings + orbital features)
+    vs official JPL PHA ground truth, with 5-fold cross-validated scores.
     """
     try:
-        # Calculate performance metrics on the dataset
-        # This is a simplified version - in production, use a held-out test set
-        
-        predictions = THREAT  # GNN predictions
-        
-        # Create synthetic ground truth for demonstration (threshold-based)
-        # In production, this should be actual labels
-        ground_truth = (MOID < 0.05).astype(int)  # PHA criterion
-        
-        # Calculate metrics
         from sklearn.metrics import (
             accuracy_score, precision_score, recall_score, f1_score,
             roc_auc_score, confusion_matrix, roc_curve, precision_recall_curve
         )
-        
-        # Binary threshold
-        pred_binary = (predictions > 0.5).astype(int)
-        
-        # Metrics
-        accuracy = accuracy_score(ground_truth, pred_binary)
-        precision = precision_score(ground_truth, pred_binary, zero_division=0)
-        recall = recall_score(ground_truth, pred_binary, zero_division=0)
-        f1 = f1_score(ground_truth, pred_binary, zero_division=0)
-        
-        try:
-            roc_auc = roc_auc_score(ground_truth, predictions)
-        except:
-            roc_auc = 0.0
-        
-        # Confusion matrix
-        cm = confusion_matrix(ground_truth, pred_binary)
-        
-        # ROC curve
-        fpr, tpr, thresholds = roc_curve(ground_truth, predictions)
-        
-        # Precision-Recall curve
+        from src.web.state import PHA_CV_METRICS
+
+        # Predictions: PHA probability from GB classifier
+        predictions  = PHA_PROB              # (N,) range 0-1
+        ground_truth = RAW_PHA.astype(int)   # official JPL PHA flag
+
+        # ROC / PR curves from full-dataset scores (for visualization)
+        fpr, tpr, thresholds   = roc_curve(ground_truth, predictions)
         precision_curve, recall_curve, pr_thresholds = precision_recall_curve(ground_truth, predictions)
-        
+
+        # Optimal threshold from ROC
+        j_scores = tpr - fpr
+        opt_idx  = int(np.argmax(j_scores))
+        optimal_threshold = float(thresholds[opt_idx])
+        pred_binary = (predictions >= optimal_threshold).astype(int)
+        cm = confusion_matrix(ground_truth, pred_binary)
+
         # Threat distribution
-        high_threat = int(np.sum(predictions > 0.7))
-        medium_threat = int(np.sum((predictions > 0.4) & (predictions <= 0.7)))
-        low_threat = int(np.sum(predictions <= 0.4))
-        
-        return {
+        high_threat   = int(np.sum(THREAT > 0.7))
+        medium_threat = int(np.sum((THREAT >= 0.4) & (THREAT <= 0.7)))
+        low_threat    = int(np.sum(THREAT < 0.4))
+
+        # Feature importance: correlation with PHA_PROB
+        feature_names = [
+            'H (Abs.Mag)', 'Epoch', 'Eccentricity', 'Semi-Major Axis',
+            'Perihelion Dist', 'Inclination', 'Long.Asc.Node', 'Arg.Perihelion',
+            'Aphelion Dist', 'Mean Motion', 'Orbital Period (y)', 'MOID',
+            'Data Arc', 'Condition Code', 'RMS'
+        ]
+        orbital_x  = graph.x[:, 2:].cpu().numpy()
+        feat_corr  = []
+        for j in range(min(orbital_x.shape[1], len(feature_names))):
+            feat_arr = orbital_x[:, j]
+            corr = float(np.corrcoef(feat_arr, predictions)[0, 1]) if np.std(feat_arr) > 0 else 0.0
+            feat_corr.append(abs(corr) if not np.isnan(corr) else 0.0)
+        feature_importance = {feature_names[j]: feat_corr[j] for j in range(len(feat_corr))}
+
+        result = {
             'metrics': {
-                'accuracy': float(accuracy),
-                'precision': float(precision),
-                'recall': float(recall),
-                'f1_score': float(f1),
-                'roc_auc': float(roc_auc)
+                # Use 5-fold CV metrics as honest out-of-sample estimates
+                'accuracy':          PHA_CV_METRICS['accuracy'],
+                'precision':         PHA_CV_METRICS['precision'],
+                'recall':            PHA_CV_METRICS['recall'],
+                'f1_score':          PHA_CV_METRICS['f1'],
+                'roc_auc':           PHA_CV_METRICS['roc_auc'],
+                'optimal_threshold': float(optimal_threshold),
+                'eval_method':       '5-fold stratified cross-validation'
             },
             'confusion_matrix': {
-                'true_negative': int(cm[0, 0]),
+                'true_negative':  int(cm[0, 0]),
                 'false_positive': int(cm[0, 1]),
                 'false_negative': int(cm[1, 0]),
-                'true_positive': int(cm[1, 1])
+                'true_positive':  int(cm[1, 1])
             },
             'roc_curve': {
-                'fpr': fpr.tolist(),
-                'tpr': tpr.tolist(),
+                'fpr':        fpr.tolist(),
+                'tpr':        tpr.tolist(),
                 'thresholds': thresholds.tolist()
             },
             'pr_curve': {
-                'precision': precision_curve.tolist(),
-                'recall': recall_curve.tolist(),
+                'precision':  precision_curve.tolist(),
+                'recall':     recall_curve.tolist(),
                 'thresholds': pr_thresholds.tolist()
             },
+            'feature_importance': feature_importance,
             'threat_distribution': {
-                'high': high_threat,
+                'high':   high_threat,
                 'medium': medium_threat,
-                'low': low_threat
+                'low':    low_threat
             },
             'dataset_info': {
-                'total_asteroids': len(predictions),
-                'positive_class': int(np.sum(ground_truth)),
-                'negative_class': int(len(ground_truth) - np.sum(ground_truth))
+                'total_asteroids':  len(predictions),
+                'positive_class':   int(np.sum(ground_truth)),
+                'negative_class':   int(len(ground_truth) - np.sum(ground_truth)),
+                'ground_truth_src': 'JPL official PHA designation',
+                'model':            'GNN embeddings + Gradient Boosting classifier'
             }
         }
-        
+
+        return sanitize_for_json(result)
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Performance metrics error: {str(e)}")
 
