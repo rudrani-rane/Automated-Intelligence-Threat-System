@@ -1,0 +1,320 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Impact Calculator - ATIS</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <script src="https://cdn.plot.ly/plotly-2.26.0.min.js"></script>
+    <style>
+        .inp-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem}
+        .inp-group{display:flex;flex-direction:column;gap:5px}
+        .inp-group label{color:rgba(255,255,255,.7);font-size:.78rem;font-family:"Roboto Mono",monospace}
+        .inp-group input,.inp-group select{padding:.6rem .8rem;background:rgba(0,0,0,.5);border:1px solid rgba(0,212,255,.3);border-radius:4px;color:#fff;font-family:"Roboto Mono",monospace}
+        .result-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1rem;margin-bottom:1.5rem}
+        .result-card{text-align:center;padding:1.2rem;border:1px solid rgba(0,212,255,.2);border-radius:8px;background:rgba(0,0,0,.3)}
+        .result-card .val{font-size:1.5rem;font-family:"Orbitron",monospace;color:#00d4ff;font-weight:700}
+        .result-card .lbl{font-size:.72rem;color:rgba(255,255,255,.55);margin-top:4px}
+        .scale-bar{height:14px;background:linear-gradient(to right,#00ff7f,#ffd700,#ff6600,#ff0000);border-radius:7px;position:relative;margin:6px 0}
+        .scale-needle{position:absolute;top:-4px;width:4px;height:22px;background:#fff;border-radius:2px;transform:translateX(-50%)}
+        .eq-block{background:rgba(0,0,0,.4);border:1px solid rgba(0,212,255,.15);border-radius:6px;padding:.9rem;font-family:"Roboto Mono",monospace;font-size:.8rem;line-height:1.7;margin-bottom:1rem}
+        .dmg-zone{display:flex;align-items:center;gap:10px;margin-bottom:8px;padding:8px;border-radius:4px}
+    </style>
+</head>
+<body>
+<nav class="navbar"><div class="nav-content"><div class="logo">&#x1F6F0;&#xFE0F; ATIS</div>
+    <ul class="nav-links">
+                <li><a href="/">Home</a></li>
+                <li><a href="/galaxy">Galaxy</a></li>
+                <li><a href="/radar">Radar</a></li>
+                <li><a href="/watchlist">Watchlist</a></li>
+                <li><a href="/trajectory">Trajectory</a></li>
+                <li><a href="/timeline">Timeline</a></li>
+                <li><a href="/analytics">Analytics</a></li>
+                <li><a href="/multi-view">Multi-View</a></li>
+                <li><a href="/ml-dashboard">ML</a></li>
+                <li><a href="/orbital-mechanics">Orbital</a></li>
+                <li><a href="/impact-calculator" class="active">Impact Calc</a></li>
+                <li><a href="/nbody">N-Body</a></li>
+                <li><a href="/alerts">Alerts</a></li>
+                <li><a href="/trends">Trends</a></li>
+                <li><a href="/comparison">Compare</a></li>
+            </ul>
+</div></nav>
+
+<div class="container" style="margin-top:100px">
+    <div style="text-align:center;margin-bottom:40px">
+        <h1>Asteroid Impact Calculator</h1>
+        <p style="color:rgba(255,255,255,.8)">Crater Size Scaling &bull; TNT Equivalent &bull; Damage Zone Modeling &bull; Palermo &amp; Torino Scale</p>
+    </div>
+
+    <!-- Equations -->
+    <div class="card" style="margin-bottom:2rem">
+        <div class="card-header"><h3 class="card-title">&#x1F4A5; Impact Physics Equations</h3></div>
+        <div class="card-body">
+            <div class="grid grid-3">
+                <div class="eq-block">
+                    <b style="color:#00d4ff">Crater Diameter (Pi-scaling)</b><br>
+                    D = 1.16 &times; (&rho;/&delta;)<sup>0.22</sup> &times; d<sup>0.78</sup> &times; v<sup>0.44</sup> &times; sin(&theta;)<sup>0.33</sup><br>
+                    where: d = impactor diameter (m)<br>
+                    &rho; = target density (kg/m&sup3;)<br>
+                    &delta; = impactor density<br>
+                    v = velocity (m/s), &theta; = impact angle
+                </div>
+                <div class="eq-block">
+                    <b style="color:#ffa500">Kinetic Energy &amp; TNT</b><br>
+                    KE = &frac12;mv&sup2;<br>
+                    m = &rho;<sub>imp</sub> &times; (4/3)&pi;(d/2)&sup3;<br>
+                    1 kt TNT = 4.184&times;10<sup>12</sup> J<br>
+                    Richter &asymp; (2/3)log<sub>10</sub>(KE<sub>J</sub>) &minus; 9.1
+                </div>
+                <div class="eq-block">
+                    <b style="color:#00ff7f">Thermal Radiation Radius</b><br>
+                    r<sub>therm</sub> = 2.2(E<sub>kt</sub>)<sup>0.44</sup> km (50% 3rd deg burns)<br>
+                    <b style="color:#ff3333">Overpressure Radius</b><br>
+                    r<sub>psi1</sub> = 1.5(E<sub>Mt</sub>)<sup>1/3</sup> km (1 psi overpressure)<br>
+                    <b style="color:#ffa500">Palermo Scale</b><br>
+                    PS = log<sub>10</sub>(P<sub>i</sub> / (f<sub>b</sub> &times; &Delta;T))<br>
+                    where f<sub>b</sub> &asymp; 3&times;10<sup>-8</sup> yr (background)
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Inputs -->
+    <div class="card" style="margin-bottom:2rem">
+        <div class="card-header"><h3 class="card-title">&#x1F4CC; Impact Parameters</h3></div>
+        <div class="card-body">
+            <div class="inp-grid" style="margin-bottom:1rem">
+                <div class="inp-group"><label>Impactor Diameter (m)</label>
+                    <input id="ic_d" type="number" value="140" min="1" max="100000" step="10"></div>
+                <div class="inp-group"><label>Impact Velocity (km/s)</label>
+                    <input id="ic_v" type="number" value="20" min="3" max="70" step="0.5"></div>
+                <div class="inp-group"><label>Impactor Density (kg/m&sup3;)</label>
+                    <input id="ic_rho" type="number" value="3000" min="500" max="10000" step="100"></div>
+                <div class="inp-group"><label>Impact Angle (&deg;)</label>
+                    <input id="ic_ang" type="number" value="45" min="5" max="90" step="5"></div>
+                <div class="inp-group"><label>Target Type</label>
+                    <select id="ic_target">
+                        <option value="2800">Continental Crust (2800 kg/m&sup3;)</option>
+                        <option value="1600">Sedimentary Rock (1600 kg/m&sup3;)</option>
+                        <option value="1020">Ocean Water (1020 kg/m&sup3;)</option>
+                        <option value="2700">Granitic Crust (2700 kg/m&sup3;)</option>
+                    </select></div>
+                <div class="inp-group"><label>GNN Threat Probability (0-1)</label>
+                    <input id="ic_prob" type="number" value="0.001" min="0" max="1" step="0.0001"></div>
+            </div>
+            <div style="display:flex;gap:.7rem;flex-wrap:wrap;margin-bottom:1rem">
+                <button class="preset-btn" onclick="setPreset('chelyabinsk')" style="padding:.4rem .9rem;border:1px solid rgba(0,212,255,.4);background:rgba(0,212,255,.08);color:#00d4ff;border-radius:4px;cursor:pointer;font-size:.78rem;font-family:'Orbitron',monospace">Chelyabinsk (20m)</button>
+                <button class="preset-btn" onclick="setPreset('tunguska')" style="padding:.4rem .9rem;border:1px solid rgba(0,212,255,.4);background:rgba(0,212,255,.08);color:#00d4ff;border-radius:4px;cursor:pointer;font-size:.78rem;font-family:'Orbitron',monospace">Tunguska (50m)</button>
+                <button class="preset-btn" onclick="setPreset('apophis')" style="padding:.4rem .9rem;border:1px solid rgba(0,212,255,.4);background:rgba(0,212,255,.08);color:#00d4ff;border-radius:4px;cursor:pointer;font-size:.78rem;font-family:'Orbitron',monospace">Apophis (370m)</button>
+                <button class="preset-btn" onclick="setPreset('chicxulub')" style="padding:.4rem .9rem;border:1px solid rgba(0,212,255,.4);background:rgba(0,212,255,.08);color:#00d4ff;border-radius:4px;cursor:pointer;font-size:.78rem;font-family:'Orbitron',monospace">Chicxulub (10km)</button>
+            </div>
+            <button onclick="calcImpact()" style="padding:.75rem 2rem;background:#ff3333;color:#fff;border:none;border-radius:4px;cursor:pointer;font-family:'Orbitron',monospace;font-weight:700;font-size:.9rem">
+                &#x1F4A5; Calculate Impact
+            </button>
+        </div>
+    </div>
+
+    <!-- Results -->
+    <div id="resultsSection" style="display:none">
+        <div class="result-grid" id="resultCards"></div>
+
+        <!-- Palermo / Torino -->
+        <div class="grid grid-2" style="margin-bottom:2rem">
+            <div class="card"><div class="card-header"><h3 class="card-title">&#x1F7E0; Torino Scale</h3></div>
+                <div class="card-body">
+                    <div id="torinoNumber" style="font-size:3rem;font-family:'Orbitron',monospace;font-weight:900;text-align:center"></div>
+                    <div class="scale-bar"><div class="scale-needle" id="torinoNeedle"></div></div>
+                    <div style="display:flex;justify-content:space-between;font-size:.7rem;color:rgba(255,255,255,.4)"><span>0 No risk</span><span>3 Merits monitoring</span><span>7 Threatening</span><span>10 Certain impact</span></div>
+                    <div id="torinoDesc" style="margin-top:1rem;font-size:.82rem;font-family:'Roboto Mono',monospace;line-height:1.6"></div>
+                </div>
+            </div>
+            <div class="card"><div class="card-header"><h3 class="card-title">&#x1F4C9; Palermo Scale</h3></div>
+                <div class="card-body">
+                    <div id="palmernoNumber" style="font-size:2.5rem;font-family:'Orbitron',monospace;font-weight:900;text-align:center"></div>
+                    <div style="text-align:center;font-size:.75rem;color:rgba(255,255,255,.5);margin-bottom:1rem">PS = log(P / (f_background &times; &Delta;T))</div>
+                    <div class="scale-bar"><div class="scale-needle" id="palmernoNeedle"></div></div>
+                    <div style="display:flex;justify-content:space-between;font-size:.7rem;color:rgba(255,255,255,.4)"><span>&lt;2 No concern</span><span>20 Monitor</span><span>&gt;0 Critical</span></div>
+                    <div id="palmernoDesc" style="margin-top:1rem;font-size:.82rem;font-family:'Roboto Mono',monospace;line-height:1.6"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Damage zones + chart -->
+        <div class="grid grid-2" style="margin-bottom:2rem">
+            <div class="card">
+                <div class="card-header"><h3 class="card-title">&#x1F4A3; Damage Zones</h3></div>
+                <div class="card-body" id="dmgZones"></div>
+            </div>
+            <div class="card">
+                <div class="card-header"><h3 class="card-title">&#x1F4C8; Damage Radius vs Diameter</h3></div>
+                <div id="dmgChart" style="height:300px"></div>
+            </div>
+        </div>
+
+        <!-- Energy comparison chart -->
+        <div class="card">
+            <div class="card-header"><h3 class="card-title">&#x26A1; Energy Comparison &mdash; Historical Events</h3></div>
+            <div id="energyCompChart" style="height:350px"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+const DARKLAY={paper_bgcolor:"rgba(0,0,0,0)",plot_bgcolor:"rgba(10,10,20,.9)",
+    font:{family:"Roboto Mono,monospace",color:"#00d4ff",size:11},
+    xaxis:{gridcolor:"rgba(0,212,255,.1)",color:"#fff"},
+    yaxis:{gridcolor:"rgba(0,212,255,.1)",color:"#fff"},
+    margin:{l:60,r:20,t:30,b:60}};
+
+const PRESETS={
+    chelyabinsk:{d:20,v:19.16,rho:3300,ang:18,prob:0.0001},
+    tunguska:{d:50,v:27,rho:2700,ang:30,prob:0.0005},
+    apophis:{d:370,v:7.4,rho:2600,ang:45,prob:0.00037},
+    chicxulub:{d:10000,v:20,rho:3300,ang:45,prob:0.9}
+};
+function setPreset(n){
+    const p=PRESETS[n];
+    document.getElementById("ic_d").value=p.d;
+    document.getElementById("ic_v").value=p.v;
+    document.getElementById("ic_rho").value=p.rho;
+    document.getElementById("ic_ang").value=p.ang;
+    document.getElementById("ic_prob").value=p.prob;
+    calcImpact();
+}
+
+function calcImpact(){
+    const d_m=parseFloat(document.getElementById("ic_d").value);
+    const v_km=parseFloat(document.getElementById("ic_v").value);
+    const v_m=v_km*1000;
+    const rho_imp=parseFloat(document.getElementById("ic_rho").value);
+    const ang_deg=parseFloat(document.getElementById("ic_ang").value);
+    const rho_tgt=parseFloat(document.getElementById("ic_target").value);
+    const prob=parseFloat(document.getElementById("ic_prob").value);
+
+    // Mass & KE
+    const r=d_m/2, vol=(4/3)*Math.PI*r*r*r;
+    const m=rho_imp*vol;
+    const KE=0.5*m*v_m*v_m; // Joules
+    const KE_kt=KE/4.184e12;
+    const KE_Mt=KE_kt/1000;
+    const KE_Gt=KE_Mt/1000;
+
+    // Richter
+    const richter=(2/(3))*Math.log10(KE)-9.1;  // empirical
+
+    // Pi-scaling crater diameter (Holsapple 1993 simplified)
+    const sinA=Math.sin(ang_deg*Math.PI/180);
+    const D_m=1.161*Math.pow(rho_imp/rho_tgt,0.22)*Math.pow(d_m,0.78)*Math.pow(v_m,0.44)*Math.pow(sinA,0.33);
+    const D_km=D_m/1000;
+
+    // Damage radii
+    const r_fireball = 0.002*Math.pow(KE_kt,0.333); // km
+    const r_thermal  = 2.2*Math.pow(KE_kt,0.4);     // 50% 3rd degree burns km
+    const r_over1    = 1.5*Math.pow(KE_Mt,0.333);   // 1-psi overpressure radius km
+    const r_over10   = 0.6*Math.pow(KE_Mt,0.333);   // 10-psi glass breakage km
+    const r_seismic  = 200*Math.pow(KE_Mt,0.25);    // km seismic damage radius
+    const r_tsunami  = rho_imp<1100 ? 0 : 50*Math.pow(KE_Mt,0.25); // ocean only
+
+    // Palermo
+    const fb=0.03; const dt=100; // 100yr window
+    const PS=Math.log10(prob/(fb*dt));
+
+    // Torino
+    let torino=0;
+    if(D_km>5&&prob>0.5) torino=10;
+    else if(D_km>1&&prob>0.1) torino=8;
+    else if(D_km>0.5&&prob>0.01) torino=7;
+    else if(D_km>0.1&&prob>0.005) torino=5;
+    else if(D_km>0.1&&prob>0.001) torino=3;
+    else if(D_km>0.05&&prob>0.0001) torino=2;
+    else if(prob>0.00001) torino=1;
+
+    // Display results section
+    document.getElementById("resultsSection").style.display="block";
+
+    // Cards
+    const cards=[
+        ["Crater Diameter",KE_Gt>1?`${(D_km).toExponential(2)} km`:`${D_m.toExponential(3)} m`,"#ff3333"],
+        ["Kinetic Energy",KE_Gt>=1?`${KE_Gt.toExponential(2)} Gt TNT`:KE_Mt>=1?`${KE_Mt.toExponential(2)} Mt TNT`:`${KE_kt.toExponential(2)} kt TNT`,"#ffa500"],
+        ["Seismic Equiv.",richter>0?`M${richter.toFixed(1)}`:"< M0","#ffff00"],
+        ["Thermal Radius",`${r_thermal.toFixed(1)} km`,"#ff6600"],
+        ["Overpressure R",`${r_over1.toFixed(1)} km`,"#ff3333"],
+        ["Impactor Mass",m>1e12?`${(m/1e12).toExponential(2)}10 kg`:`${m.toExponential(2)} kg`,"#00d4ff"],
+    ];
+    document.getElementById("resultCards").innerHTML=cards.map(([l,v,c])=>
+        `<div class="result-card"><div class="val" style="color:${c}">${v}</div><div class="lbl">${l}</div></div>`).join("");
+
+    // Torino
+    const torColors=[0,"#00ff7f","#ffd700","#ffd700","#ffa500","#ffa500","#ff6600","#ff3333","#ff3333","#ff3333","#cc0000"];
+    const torDescs=["No likely impact","Normal (merit attention if within 10yr)","Somewhat close encounter","Close encounter (1% impact chance)","Close encounter (1–10% impact chance)","Close encounter (>10% impact chance)","Threatening (significant chance)","Threatening (large impact)","Certain impact (regional damage)","Certain impact (global damage)","Certain impact (mass extinction)"];
+    const tc=torColors[torino];
+    document.getElementById("torinoNumber").textContent=torino+"/10";
+    document.getElementById("torinoNumber").style.color=tc;
+    document.getElementById("torinoNeedle").style.left=(torino/10*100)+"%";
+    document.getElementById("torinoDesc").innerHTML=`<span style="color:${tc}">${torDescs[torino]}</span>`;
+
+    // Palermo
+    const psColor=PS>0?"#ff3333":PS>-2?"#ffa500":"#00ff7f";
+    document.getElementById("palmernoNumber").textContent=PS.toFixed(2);
+    document.getElementById("palmernoNumber").style.color=psColor;
+    const psNorm=Math.max(0,Math.min(100,(PS+8)/10*100));
+    document.getElementById("palmernoNeedle").style.left=psNorm+"%";
+    document.getElementById("palmernoDesc").innerHTML=`PS = log(${prob} / (${fb}  ${dt})) = <b style="color:${psColor}">${PS.toFixed(3)}</b><br>
+        <span style="color:${psColor}">${PS>0?" Threat exceeds random background — warrants priority action":PS>-2?" Merits continued monitoring":" Below random background level"}</span>`;
+
+    // Damage zones
+    const zones=[
+        {label:"Fireball / Airburst",r:r_fireball,color:"#ffe066",bg:"rgba(255,224,102,.08)",icon:""},
+        {label:"Thermal Radiation (50% 3rd-deg burns)",r:r_thermal,color:"#ff6600",bg:"rgba(255,102,0,.07)",icon:""},
+        {label:"10 psi Overpressure (glass breakage)",r:r_over10,color:"#ff3333",bg:"rgba(255,51,51,.07)",icon:""},
+        {label:"1 psi Overpressure (eardrum damage)",r:r_over1,color:"#ff0000",bg:"rgba(255,0,0,.06)",icon:""},
+        {label:"Seismic Ground Motion",r:r_seismic,color:"#9966ff",bg:"rgba(153,102,255,.07)",icon:""},
+    ];
+    if(r_tsunami>0) zones.push({label:"Tsunami run-up zone (ocean impact)",r:r_tsunami,color:"#00bfff",bg:"rgba(0,191,255,.07)",icon:""});
+    document.getElementById("dmgZones").innerHTML=zones.map(z=>
+        `<div class="dmg-zone" style="background:${z.bg};border-left:3px solid ${z.color}">
+            <span style="font-size:1.2rem">${z.icon}</span>
+            <div style="flex:1"><span style="color:rgba(255,255,255,.8)">${z.label}</span></div>
+            <span style="color:${z.color};font-family:'Roboto Mono',monospace;font-weight:700">${z.r<1?z.r.toFixed(3)+" km":z.r.toFixed(1)+" km"}</span>
+        </div>`).join("");
+
+    // Damage radius vs diameter chart
+    const diams=Array.from({length:50},(_,k)=>Math.pow(10,k/10-1));
+    function craterD(d){
+        const v2=v_m,m2=rho_imp*(4/3)*Math.PI*(d/2)**3;
+        const KE2=0.5*m2*v2*v2;
+        const kt2=KE2/4.184e12,Mt2=kt2/1000;
+        const D2=1.161*Math.pow(rho_imp/rho_tgt,.22)*Math.pow(d,.78)*Math.pow(v2,.44)*Math.pow(sinA,.33);
+        const th=2.2*Math.pow(kt2,.4);
+        const ov=1.5*Math.pow(Mt2,.333);
+        return{D_km:D2/1000,thermal:th,over:ov};
+    }
+    const dpts=diams.map(d=>craterD(d));
+    Plotly.newPlot("dmgChart",[
+        {x:diams,y:dpts.map(p=>p.D_km),mode:"lines",name:"Crater (km)",line:{color:"#ff3333",width:2}},
+        {x:diams,y:dpts.map(p=>p.thermal),mode:"lines",name:"Thermal radius (km)",line:{color:"#ff6600",width:2}},
+        {x:diams,y:dpts.map(p=>p.over),mode:"lines",name:"1-psi radius (km)",line:{color:"#9966ff",width:2}},
+        {x:[d_m],y:[D_km],mode:"markers",name:"This impact",marker:{color:"#fff",size:12,symbol:"star"}}
+    ],{...DARKLAY,xaxis:{...DARKLAY.xaxis,type:"log",title:"Impactor Diameter (m)"},
+       yaxis:{...DARKLAY.yaxis,type:"log",title:"Radius / Diameter (km)"},
+       showlegend:true,legend:{font:{color:"#fff"},bgcolor:"rgba(0,0,0,.5)"}},{responsive:true});
+
+    // Historical comparison
+    const events=["Barringer","Tunguska","Chelyabinsk","Apophis (est)","Chicxulub","This Impact"];
+    const energies=[1e4,1.5e4,500,1450000,4e8,KE_kt];
+    const cols=["#aaaaaa","#ffaa00","#ff6600","#ff3333","#cc0000","#00d4ff"];
+    Plotly.newPlot("energyCompChart",[{
+        x:events,y:energies,type:"bar",marker:{color:cols},
+        text:energies.map(e=>e>1e6?`${(e/1e6).toFixed(1)} Mt`:`${e.toLocaleString()} kt`),
+        textposition:"outside",textfont:{color:"#fff",size:10}
+    }],{...DARKLAY,yaxis:{...DARKLAY.yaxis,type:"log",title:"Energy (kt TNT)"},
+        margin:{l:60,r:20,t:30,b:60},showlegend:false},{responsive:true});
+}
+
+// Run on load
+calcImpact();
+</script>
+</body>
+</html>

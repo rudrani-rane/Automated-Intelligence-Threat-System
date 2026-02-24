@@ -1,0 +1,352 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>N-Body Simulation - ATIS</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <script src="https://cdn.plot.ly/plotly-2.26.0.min.js"></script>
+    <style>
+        .nb-ctrl{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:.9rem;margin-bottom:1.2rem}
+        .nb-inp{display:flex;flex-direction:column;gap:4px}
+        .nb-inp label{font-size:.75rem;color:rgba(255,255,255,.6);font-family:"Roboto Mono",monospace}
+        .nb-inp input{padding:.5rem .7rem;background:rgba(0,0,0,.5);border:1px solid rgba(0,212,255,.3);border-radius:4px;color:#fff;font-family:"Roboto Mono",monospace}
+        .body-row{display:flex;align-items:center;gap:8px;padding:6px 10px;margin-bottom:4px;border-radius:4px;font-family:"Roboto Mono",monospace;font-size:.8rem}
+        .eq-blk{background:rgba(0,0,0,.4);border:1px solid rgba(0,212,255,.15);border-radius:6px;padding:.9rem;font-family:"Roboto Mono",monospace;font-size:.8rem;line-height:1.7}
+        .step-log{padding:5px 10px;border-left:3px solid rgba(0,212,255,.3);margin-bottom:3px;font-family:"Roboto Mono",monospace;font-size:.78rem;background:rgba(0,212,255,.03);border-radius:2px}
+        .btn-run{padding:.75rem 2rem;background:#00ff7f;color:#000;border:none;border-radius:4px;cursor:pointer;font-family:"Orbitron",monospace;font-weight:700}
+    </style>
+</head>
+<body>
+<nav class="navbar"><div class="nav-content"><div class="logo">&#x1F6F0;&#xFE0F; ATIS</div>
+    <ul class="nav-links">
+                <li><a href="/">Home</a></li>
+                <li><a href="/galaxy">Galaxy</a></li>
+                <li><a href="/radar">Radar</a></li>
+                <li><a href="/watchlist">Watchlist</a></li>
+                <li><a href="/trajectory">Trajectory</a></li>
+                <li><a href="/timeline">Timeline</a></li>
+                <li><a href="/analytics">Analytics</a></li>
+                <li><a href="/multi-view">Multi-View</a></li>
+                <li><a href="/ml-dashboard">ML</a></li>
+                <li><a href="/orbital-mechanics">Orbital</a></li>
+                <li><a href="/impact-calculator">Impact Calc</a></li>
+                <li><a href="/nbody" class="active">N-Body</a></li>
+                <li><a href="/alerts">Alerts</a></li>
+                <li><a href="/trends">Trends</a></li>
+                <li><a href="/comparison">Compare</a></li>
+            </ul>
+</div></nav>
+
+<div class="container" style="margin-top:100px">
+    <div style="text-align:center;margin-bottom:40px">
+        <h1>N-Body Gravitational Simulation</h1>
+        <p style="color:rgba(255,255,255,.8)">Velocity Verlet Integration &bull; Gravitational Perturbations &bull; Asteroid + Planets</p>
+    </div>
+
+    <!-- Equations -->
+    <div class="card" style="margin-bottom:2rem">
+        <div class="card-header"><h3 class="card-title">&#x1F4D0; Velocity Verlet Algorithm</h3></div>
+        <div class="card-body">
+            <div class="grid grid-3">
+                <div class="eq-blk"><b style="color:#00d4ff">Gravitational Acceleration</b><br>
+                    <b>a</b><sub>i</sub> = &Sigma;<sub>j</sub> Gm<sub>j</sub>(<b>r</b><sub>j</sub> &minus; <b>r</b><sub>i</sub>) / |<b>r</b><sub>j</sub> &minus; <b>r</b><sub>i</sub>|&sup3;<br>
+                    Softened: / (|<b>r</b>| + &epsilon;)<sup>3/2</sup><br>
+                    &epsilon; = softening length (AU)</div>
+                <div class="eq-blk"><b style="color:#ffa500">Velocity Verlet (2nd order)</b><br>
+                    <b>v</b>(t+&Delta;t) = <b>v</b>(t) + &Delta;t&sdot;<b>a</b>(t)<br>
+                    <b>r</b>(t+&Delta;t) = <b>r</b>(t) + &Delta;t&sdot;<b>v</b>(t+&Delta;t)<br>
+                    <b>a</b>(t+&Delta;t) = f(<b>r</b>(t+&Delta;t))<br>
+                    <b>v</b>(t+&Delta;t) = <b>v</b>(t+&Delta;t/2) + &Delta;t/2&sdot;<b>a</b>(t+&Delta;t)</div>
+                <div class="eq-blk"><b style="color:#00ff7f">Energy Conservation Check</b><br>
+                    KE = &frac12;&Sigma;<sub>i</sub> m<sub>i</sub>|<b>v</b><sub>i</sub>|&sup2;<br>
+                    PE = &minus;&Sigma;<sub>i&lt;j</sub> Gm<sub>i</sub>m<sub>j</sub>/r<sub>ij</sub><br>
+                    E<sub>total</sub> = KE + PE = const<br>
+                    &Delta;E/E &asymp; 0 for stable integrator</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Controls -->
+    <div class="card" style="margin-bottom:2rem">
+        <div class="card-header"><h3 class="card-title">&#x2699;&#xFE0F; Simulation Parameters</h3></div>
+        <div class="card-body">
+            <div class="nb-ctrl">
+                <div class="nb-inp"><label>Integration Steps</label>
+                    <input id="nb_steps" type="number" value="500" min="50" max="5000" step="50"></div>
+                <div class="nb-inp"><label>Time Step (days)</label>
+                    <input id="nb_dt" type="number" value="10" min="0.1" max="100" step="1"></div>
+                <div class="nb-inp"><label>Softening ε (AU)</label>
+                    <input id="nb_eps" type="number" value="0.01" min="0.001" max="0.5" step="0.001"></div>
+                <div class="nb-inp"><label>Asteroid Diameter (m)</label>
+                    <input id="nb_d" type="number" value="370" min="1" max="100000" step="10"></div>
+                <div class="nb-inp"><label>Asteroid a (AU)</label>
+                    <input id="nb_a" type="number" value="0.9224" min="0.1" max="5" step="0.01"></div>
+                <div class="nb-inp"><label>Asteroid e</label>
+                    <input id="nb_e" type="number" value="0.1912" min="0" max="0.99" step="0.01"></div>
+            </div>
+            <div style="display:flex;gap:.8rem;align-items:center;flex-wrap:wrap">
+                <button class="btn-run" onclick="runSimulation()"> Run Simulation</button>
+                <button onclick="loadPreset('tight')" style="padding:.5rem 1rem;border:1px solid rgba(0,212,255,.4);background:rgba(0,212,255,.08);color:#00d4ff;border-radius:4px;cursor:pointer;font-family:'Orbitron',monospace;font-size:.75rem">Tight Orbit</button>
+                <button onclick="loadPreset('cometary')" style="padding:.5rem 1rem;border:1px solid rgba(0,212,255,.4);background:rgba(0,212,255,.08);color:#00d4ff;border-radius:4px;cursor:pointer;font-family:'Orbitron',monospace;font-size:.75rem">Cometary (e=0.85)</button>
+                <button onclick="loadPreset('jupiter')" style="padding:.5rem 1rem;border:1px solid rgba(0,212,255,.4);background:rgba(0,212,255,.08);color:#00d4ff;border-radius:4px;cursor:pointer;font-family:'Orbitron',monospace;font-size:.75rem">Jupiter-crossing</button>
+                <div id="simProgress" style="color:#00d4ff;font-family:'Roboto Mono',monospace;font-size:.82rem"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Output -->
+    <div class="grid grid-2" style="margin-bottom:2rem">
+        <div class="card">
+            <div class="card-header"><h3 class="card-title">&#x1F4CB; Body State (Simulation Start)</h3></div>
+            <div class="card-body" id="bodyStates"></div>
+        </div>
+        <div class="card">
+            <div class="card-header"><h3 class="card-title">&#x1F4DD; Integration Log (first 10 steps)</h3></div>
+            <div class="card-body" id="integLog" style="max-height:250px;overflow-y:auto"></div>
+        </div>
+    </div>
+
+    <div class="grid grid-2" style="margin-bottom:2rem">
+        <div class="card"><div class="card-header"><h3 class="card-title">&#x1F30E; 2D Trajectory (XY plane)</h3></div>
+            <div id="orbitPlot2D" style="height:450px"></div></div>
+        <div class="card"><div class="card-header"><h3 class="card-title">&#x1F4CF; Earth-Asteroid Distance</h3></div>
+            <div id="distancePlot" style="height:450px"></div></div>
+    </div>
+
+    <div class="grid grid-2">
+        <div class="card"><div class="card-header"><h3 class="card-title">&#x1F4A1; Energy Conservation</h3></div>
+            <div id="energyPlot" style="height:300px"></div></div>
+        <div class="card"><div class="card-header"><h3 class="card-title">&#x26A1; Speed Profile</h3></div>
+            <div id="speedPlot" style="height:300px"></div></div>
+    </div>
+</div>
+
+<script>
+const G=6.674e-11, AU=1.496e11, MSUN=1.989e30, MEARTH=5.972e24, MJUP=1.898e27, MSAT=5.683e26;
+const DAY=86400;
+const DARKLAY={paper_bgcolor:"rgba(0,0,0,0)",plot_bgcolor:"rgba(10,10,20,.9)",
+    font:{family:"Roboto Mono,monospace",color:"#00d4ff",size:11},
+    xaxis:{gridcolor:"rgba(0,212,255,.1)",color:"#fff"},
+    yaxis:{gridcolor:"rgba(0,212,255,.1)",color:"#fff"},
+    margin:{l:55,r:15,t:30,b:50}};
+const DEG=Math.PI/180;
+
+const PRESETS={
+    tight:{a:0.7,e:0.25,d:200,steps:600,dt:5},
+    cometary:{a:5,e:0.85,d:1000,steps:800,dt:30},
+    jupiter:{a:4.8,e:0.3,d:500,steps:1000,dt:20}
+};
+function loadPreset(n){
+    const p=PRESETS[n];
+    if(p.a) document.getElementById("nb_a").value=p.a;
+    if(p.e) document.getElementById("nb_e").value=p.e;
+    if(p.d) document.getElementById("nb_d").value=p.d;
+    if(p.steps) document.getElementById("nb_steps").value=p.steps;
+    if(p.dt) document.getElementById("nb_dt").value=p.dt;
+}
+
+function asteroidMass(d_m){
+    return 3000*(4/3)*Math.PI*(d_m/2)**3;
+}
+
+function circVelocity(r_au, m_center){
+    return Math.sqrt(G*m_center/(r_au*AU));
+}
+
+function advectVerlet(bodies, dt_s, eps){
+    const N=bodies.length;
+    // Compute initial accelerations
+    const acc=bodies.map(()=>({ax:0,ay:0,az:0}));
+    for(let i=0;i<N;i++){
+        for(let j=0;j<N;j++){
+            if(i===j) continue;
+            const dx=(bodies[j].x-bodies[i].x)*AU,
+                  dy=(bodies[j].y-bodies[i].y)*AU,
+                  dz=(bodies[j].z-bodies[i].z)*AU;
+            const r2=dx*dx+dy*dy+dz*dz;
+            const r3=Math.pow(r2+eps*eps*AU*AU,1.5);
+            const gm=G*bodies[j].m;
+            acc[i].ax+=gm*dx/r3;
+            acc[i].ay+=gm*dy/r3;
+            acc[i].az+=gm*dz/r3;
+        }
+    }
+    // Half-step velocity
+    for(let i=0;i<N;i++){
+        bodies[i].vx+=0.5*dt_s*acc[i].ax;
+        bodies[i].vy+=0.5*dt_s*acc[i].ay;
+        bodies[i].vz+=0.5*dt_s*acc[i].az;
+    }
+    // Full step position
+    for(let i=0;i<N;i++){
+        bodies[i].x+=dt_s*bodies[i].vx/AU;
+        bodies[i].y+=dt_s*bodies[i].vy/AU;
+        bodies[i].z+=dt_s*bodies[i].vz/AU;
+    }
+    // New accelerations
+    const acc2=bodies.map(()=>({ax:0,ay:0,az:0}));
+    for(let i=0;i<N;i++){
+        for(let j=0;j<N;j++){
+            if(i===j) continue;
+            const dx=(bodies[j].x-bodies[i].x)*AU,
+                  dy=(bodies[j].y-bodies[i].y)*AU,
+                  dz=(bodies[j].z-bodies[i].z)*AU;
+            const r2=dx*dx+dy*dy+dz*dz;
+            const r3=Math.pow(r2+eps*eps*AU*AU,1.5);
+            const gm=G*bodies[j].m;
+            acc2[i].ax+=gm*dx/r3;
+            acc2[i].ay+=gm*dy/r3;
+            acc2[i].az+=gm*dz/r3;
+        }
+    }
+    // Second half-step velocity
+    for(let i=0;i<N;i++){
+        bodies[i].vx+=0.5*dt_s*acc2[i].ax;
+        bodies[i].vy+=0.5*dt_s*acc2[i].ay;
+        bodies[i].vz+=0.5*dt_s*acc2[i].az;
+    }
+    return bodies;
+}
+
+function totalEnergy(bodies, eps){
+    let KE=0, PE=0;
+    const N=bodies.length;
+    for(let i=0;i<N;i++){
+        KE+=0.5*bodies[i].m*(bodies[i].vx**2+bodies[i].vy**2+bodies[i].vz**2);
+        for(let j=i+1;j<N;j++){
+            const dx=(bodies[j].x-bodies[i].x)*AU,
+                  dy=(bodies[j].y-bodies[i].y)*AU,
+                  dz=(bodies[j].z-bodies[i].z)*AU;
+            const r=Math.sqrt(dx*dx+dy*dy+dz*dz+eps*eps*AU*AU);
+            PE-=G*bodies[i].m*bodies[j].m/r;
+        }
+    }
+    return KE+PE;
+}
+
+function runSimulation(){
+    const steps=parseInt(document.getElementById("nb_steps").value);
+    const dt_days=parseFloat(document.getElementById("nb_dt").value);
+    const eps_au=parseFloat(document.getElementById("nb_eps").value);
+    const d_m=parseFloat(document.getElementById("nb_d").value);
+    const a_au=parseFloat(document.getElementById("nb_a").value);
+    const e=parseFloat(document.getElementById("nb_e").value);
+    const dt_s=dt_days*DAY;
+    const eps=eps_au;
+
+    // Set up bodies: Sun, Earth, Jupiter, Saturn, Asteroid
+    // Positions in AU, velocities in m/s
+    // Simple coplanar initial conditions for demo
+    const earthR=1.0, jupR=5.2, satR=9.58;
+    const bodies=[
+        {name:"Sun",   m:MSUN,   x:0,     y:0,     z:0,  vx:0,  vy:0,  vz:0, color:"#ffd700"},
+        {name:"Earth", m:MEARTH, x:earthR,y:0,     z:0,  vx:0,  vy:circVelocity(earthR,MSUN), vz:0, color:"#2255ff"},
+        {name:"Jupiter",m:MJUP,  x:jupR,  y:0,     z:0,  vx:0,  vy:circVelocity(jupR,MSUN),   vz:0, color:"#ffa500"},
+        {name:"Saturn", m:MSAT,  x:satR,  y:0,     z:0,  vx:0,  vy:circVelocity(satR,MSUN),   vz:0, color:"#ccaaff"},
+        {name:"Asteroid",m:asteroidMass(d_m), x:a_au*(1-e),y:0,z:0,
+            vx:0, vy:Math.sqrt(MSUN*G*(2/(a_au*(1-e)*AU)-1/(a_au*AU))), vz:0, color:"#ff3333"}
+    ];
+
+    // Body states display
+    document.getElementById("bodyStates").innerHTML=bodies.map(b=>`
+        <div class="body-row" style="background:rgba(${b.name==="Sun"?"255,215,0":b.name==="Earth"?"34,85,255":b.name==="Asteroid"?"255,51,51":"100,100,100"},.07);border-left:3px solid ${b.color}">
+            <span style="color:${b.color};font-weight:700;width:72px">${b.name}</span>
+            <span style="color:rgba(255,255,255,.7)">r=${b.x.toFixed(4)} AU</span>
+            <span style="color:rgba(255,255,255,.7)">v=${(b.vy/1000).toFixed(3)} km/s</span>
+        </div>`).join("");
+
+    document.getElementById("simProgress").textContent="Integrating";
+    const prog=document.getElementById("simProgress");
+
+    // Run in small chunks to not block UI
+    const trails=bodies.map(()=>({xs:[],ys:[]}));
+    const timeArr=[];
+    const earthAstDist=[];
+    const energies=[];
+    const speedsAst=[];
+    const logDiv=document.getElementById("integLog");
+    logDiv.innerHTML="";
+    const E0=totalEnergy(JSON.parse(JSON.stringify(bodies)),eps);
+    let step=0;
+
+    function doChunk(){
+        const chunkSize=Math.min(50,steps-step);
+        for(let s=0;s<chunkSize;s++){
+            advectVerlet(bodies,dt_s,eps);
+            step++;
+            bodies.forEach((b,i)=>{trails[i].xs.push(b.x);trails[i].ys.push(b.y);});
+            const dx=bodies[1].x-bodies[4].x, dy=bodies[1].y-bodies[4].y;
+            earthAstDist.push(Math.sqrt(dx*dx+dy*dy));
+            timeArr.push(step*dt_days);
+            const E=totalEnergy(JSON.parse(JSON.stringify(bodies)),eps);
+            energies.push((E-E0)/Math.abs(E0)*100); // % error
+            speedsAst.push(Math.sqrt(bodies[4].vx**2+bodies[4].vy**2+bodies[4].vz**2)/1000);
+            if(step<=10){
+                const el=document.createElement("div");
+                el.className="step-log";
+                el.innerHTML=`Step ${step}: Asteroid (${bodies[4].x.toFixed(4)}, ${bodies[4].y.toFixed(4)}) AU &nbsp; v=${(Math.sqrt(bodies[4].vx**2+bodies[4].vy**2)/1000).toFixed(3)} km/s &nbsp; ΔE=${((E-E0)/Math.abs(E0)*100).toExponential(2)}%`;
+                logDiv.appendChild(el);
+            }
+        }
+        prog.textContent=`Step ${step}/${steps} (${(step/steps*100).toFixed(0)}%)`;
+        if(step<steps){setTimeout(doChunk,0);}
+        else{render();}
+    }
+
+    function render(){
+        prog.textContent="Done!";
+        const colors=bodies.map(b=>b.color);
+        // 2D trajectories
+        Plotly.newPlot("orbitPlot2D",bodies.map((b,i)=>{
+            const tr={x:trails[i].xs,y:trails[i].ys,mode:"lines",type:"scatter",name:b.name,
+                line:{color:b.color,width:b.name==="Asteroid"?2.5:1.5},opacity:b.name==="Sun"?0:1};
+            if(b.name==="Sun")tr.mode="markers";
+            return tr;
+        }).concat([{x:[0],y:[0],mode:"markers",type:"scatter",name:"Sun",marker:{color:"#ffd700",size:14}}]),
+        {...DARKLAY,xaxis:{...DARKLAY.xaxis,title:"X (AU)"},yaxis:{...DARKLAY.yaxis,title:"Y (AU)"},
+         showlegend:true,legend:{font:{color:"#fff"},bgcolor:"rgba(0,0,0,.5)"}},{responsive:true});
+
+        // Distance plot
+        const minDist=Math.min(...earthAstDist);
+        const minIdx=earthAstDist.indexOf(minDist);
+        Plotly.newPlot("distancePlot",[
+            {x:timeArr,y:earthAstDist,mode:"lines",type:"scatter",name:"Earth-Asteroid dist",
+             line:{color:"#00d4ff",width:2},fill:"tozeroy",fillcolor:"rgba(0,212,255,.05)"},
+            {x:[timeArr[minIdx]],[y:[minDist]],mode:"markers",type:"scatter",name:"Closest approach",
+             marker:{color:"#ff3333",size:10,symbol:"star"},
+             text:[`Min: ${minDist.toFixed(4)} AU (${(minDist*389.17).toFixed(1)} LD)`],hoverinfo:"text+x"},
+            {x:timeArr,y:Array(timeArr.length).fill(0.05),mode:"lines",name:"PHA 0.05 AU",
+             line:{color:"rgba(255,100,0,.4)",dash:"dash"}}
+        ],{...DARKLAY,xaxis:{...DARKLAY.xaxis,title:"Time (days)"},
+           yaxis:{...DARKLAY.yaxis,title:"Distance (AU)"},
+           showlegend:true,legend:{font:{color:"#fff"},bgcolor:"rgba(0,0,0,.5)"},
+           annotations:[{x:timeArr[minIdx],y:minDist,text:`${minDist.toFixed(4)} AU`,
+               showarrow:true,arrowcolor:"#ff3333",font:{color:"#ff3333",size:10},arrowhead:2}]},{responsive:true});
+
+        // Energy conservation
+        Plotly.newPlot("energyPlot",[
+            {x:timeArr,y:energies,mode:"lines",type:"scatter",name:"ΔE/E (%)",
+             line:{color:"#00ff7f",width:1.5},fill:"tozeroy",fillcolor:"rgba(0,255,127,.04)"}
+        ],{...DARKLAY,xaxis:{...DARKLAY.xaxis,title:"Time (days)"},
+           yaxis:{...DARKLAY.yaxis,title:"Energy Error (%)"},showlegend:false},{responsive:true,displayModeBar:false});
+
+        // Speed
+        Plotly.newPlot("speedPlot",[
+            {x:timeArr,y:speedsAst,mode:"lines",type:"scatter",name:"Asteroid speed",
+             line:{color:"#ff00ff",width:2},fill:"tozeroy",fillcolor:"rgba(255,0,255,.06)"},
+            {x:timeArr,y:Array(timeArr.length).fill(11.19),mode:"lines",name:"Earth escape",
+             line:{color:"rgba(255,255,255,.25)",dash:"dash"}}
+        ],{...DARKLAY,xaxis:{...DARKLAY.xaxis,title:"Time (days)"},
+           yaxis:{...DARKLAY.yaxis,title:"Speed (km/s)"},
+           showlegend:true,legend:{font:{color:"#fff"},bgcolor:"rgba(0,0,0,.5)"}},{responsive:true,displayModeBar:false});
+    }
+
+    doChunk();
+}
+
+// Auto-run on load
+runSimulation();
+</script>
+</body>
+</html>
