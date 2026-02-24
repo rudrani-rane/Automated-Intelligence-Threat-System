@@ -31,22 +31,25 @@ class EnsemblePredictor:
         self.device = device
         
         # Load GNN model
-        self.gnn_model = ATISGNN(
-            in_channels=17,
-            hidden_channels=64,
-            latent_dim=32,
-            heads=4
-        ).to(device)
-        
-        try:
-            checkpoint = torch.load(model_path, map_location=device)
-            self.gnn_model.load_state_dict(checkpoint['model_state_dict'])
-            self.gnn_model.eval()
-            print(f"✓ Loaded ensemble GNN model from {model_path}")
-        except:
-            print(f"ℹ️  Model file not found: {model_path}")
-            print("   This is normal! Using pre-computed threat scores from CSV data.")
-            print("   Optional: Train a new model with: python -m src.models.train")
+        if not Path(model_path).exists():
+            print(f"ℹ️  No trained model at {model_path} — ensemble using untrained GNN")
+            self.gnn_model = ATISGNN(in_channels=15).to(device)
+        else:
+            try:
+                checkpoint = torch.load(model_path, map_location=device)
+                in_ch = checkpoint.get('in_channels', 15)
+                self.gnn_model = ATISGNN(
+                    in_channels=in_ch,
+                    hidden_channels=64,
+                    latent_dim=32,
+                    heads=4
+                ).to(device)
+                self.gnn_model.load_state_dict(checkpoint['model_state_dict'], strict=False)
+                self.gnn_model.eval()
+                print(f"✓ Loaded ensemble GNN model from {model_path}")
+            except Exception as e:
+                print(f"⚠️  Could not load ensemble model weights: {e}")
+                self.gnn_model = ATISGNN(in_channels=15).to(device)
         
         # Model weights (can be tuned based on validation performance)
         self.weights = {
@@ -59,11 +62,12 @@ class EnsemblePredictor:
     def predict_gnn(self, graph_data: Data, target_node: int) -> float:
         """GNN prediction"""
         self.gnn_model.eval()
+        from src.models.gnn_model import ORBITAL_FEATURE_START
         with torch.no_grad():
-            x = graph_data.x.to(self.device)
+            x = graph_data.x[:, ORBITAL_FEATURE_START:].to(self.device)
             edge_index = graph_data.edge_index.to(self.device)
-            
-            mu, sigma = self.gnn_model(x, edge_index)
+
+            mu, sigma, _pha_logit = self.gnn_model(x, edge_index)
             threat_scores = compute_threat_scores(mu, sigma, graph_data)
             prediction = float(threat_scores[target_node].item())
         

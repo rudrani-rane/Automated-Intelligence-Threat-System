@@ -23,23 +23,30 @@ class ModelExplainer:
     
     def __init__(self, model_path: str = "outputs/best_model.pth", device: str = "cpu"):
         self.device = device
-        self.model = ATISGNN(
-            in_channels=17,
-            hidden_channels=64,
-            latent_dim=32,
-            heads=4
-        ).to(device)
-        
+        self.model = None
+
         # Load trained model
+        if not Path(model_path).exists():
+            print(f"ℹ️  No trained model at {model_path} — explainer running in fallback mode")
+            self.model = ATISGNN(in_channels=15).to(device)
+            return
         try:
             checkpoint = torch.load(model_path, map_location=device)
-            self.model.load_state_dict(checkpoint['model_state_dict'])
+            in_ch = checkpoint.get('in_channels', 15)
+            self.model = ATISGNN(
+                in_channels=in_ch,
+                hidden_channels=64,
+                latent_dim=32,
+                heads=4
+            ).to(device)
+            self.model.load_state_dict(checkpoint['model_state_dict'], strict=False)
             self.model.eval()
             print(f"✓ Loaded trained GNN model from {model_path}")
-        except:
-            print(f"ℹ️  Model file not found: {model_path}")
-            print("   This is normal! The system will use threat scores from CSV data.")
-            print("   To train your own model, run: python -m src.models.train")
+        except Exception as e:
+            print(f"⚠️  Could not load model weights from {model_path}: {e}")
+            print("   Explainer running with untrained model weights")
+            if self.model is None:
+                self.model = ATISGNN(in_channels=15).to(device)
     
     def extract_attention_weights(self, graph_data: Data) -> Dict[str, List]:
         """
@@ -75,12 +82,13 @@ class ModelExplainer:
         """
         self.model.eval()
         
-        # Enable gradient computation for input features
-        x = graph_data.x.clone().detach().requires_grad_(True).to(self.device)
+        from src.models.gnn_model import ORBITAL_FEATURE_START
+        # Enable gradient computation for orbital-only input (strips neo/pha to match training)
+        x = graph_data.x[:, ORBITAL_FEATURE_START:].clone().detach().requires_grad_(True).to(self.device)
         edge_index = graph_data.edge_index.to(self.device)
-        
+
         # Forward pass
-        mu, sigma = self.model(x, edge_index)
+        mu, sigma, _pha_logit = self.model(x, edge_index)
         
         # Compute threat score (need gradients)
         latent_risk = torch.norm(mu, dim=1)
@@ -119,12 +127,13 @@ class ModelExplainer:
         """
         self.model.eval()
         
+        from src.models.gnn_model import ORBITAL_FEATURE_START
         with torch.no_grad():
             # Get baseline prediction
-            x = graph_data.x.to(self.device)
+            x = graph_data.x[:, ORBITAL_FEATURE_START:].to(self.device)
             edge_index = graph_data.edge_index.to(self.device)
-            
-            mu, sigma = self.model(x, edge_index)
+
+            mu, sigma, _pha_logit = self.model(x, edge_index)
             threat_scores = compute_threat_scores(mu, sigma, graph_data)
             baseline_pred = float(threat_scores[target_node].item())
             
@@ -150,7 +159,7 @@ class ModelExplainer:
                     x_perturbed[target_node, i] = x[random_idx, i]
                     
                     # Prediction with perturbed feature
-                    mu_p, sigma_p = self.model(x_perturbed, edge_index)
+                    mu_p, sigma_p, _pha_p = self.model(x_perturbed, edge_index)
                     threat_scores_p = compute_threat_scores(mu_p, sigma_p, graph_data)
                     perturbed_pred = float(threat_scores_p[target_node].item())
                     
@@ -169,13 +178,14 @@ class ModelExplainer:
         Combines multiple explainability techniques
         """
         # Get prediction
+        from src.models.gnn_model import ORBITAL_FEATURE_START
         self.model.eval()
         with torch.no_grad():
-            x = graph_data.x.to(self.device)
+            x = graph_data.x[:, ORBITAL_FEATURE_START:].to(self.device)
             edge_index = graph_data.edge_index.to(self.device)
-            
-            mu, sigma = self.model(x, edge_index)
-            
+
+            mu, sigma, _pha_logit = self.model(x, edge_index)
+
             # Compute threat score for this asteroid
             threat_scores = compute_threat_scores(mu, sigma, graph_data)
             prediction = float(threat_scores[target_node].item())
