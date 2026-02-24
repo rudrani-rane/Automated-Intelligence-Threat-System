@@ -24,3 +24,7 @@ Thumbs.db
 
 # NOTE: data/ and outputs/ are intentionally tracked.
 # Railway needs them at build time. If best_model.pth grows large, use Git LFS.
+
+deploy_to_hf.py
+.env
+test_results.json
