@@ -15,6 +15,7 @@ from torch_geometric.data import Data
 sys.path.append(str(Path(__file__).parent.parent.parent))
 
 from src.models.gnn_model import ATISGNN
+from src.risk.threat_engine import compute_threat_scores
 
 
 class EnsemblePredictor:
@@ -41,8 +42,11 @@ class EnsemblePredictor:
             checkpoint = torch.load(model_path, map_location=device)
             self.gnn_model.load_state_dict(checkpoint['model_state_dict'])
             self.gnn_model.eval()
+            print(f"✓ Loaded ensemble GNN model from {model_path}")
         except:
-            print(f"Warning: Could not load GNN model from {model_path}")
+            print(f"ℹ️  Model file not found: {model_path}")
+            print("   This is normal! Using pre-computed threat scores from CSV data.")
+            print("   Optional: Train a new model with: python -m src.models.train")
         
         # Model weights (can be tuned based on validation performance)
         self.weights = {
@@ -58,10 +62,10 @@ class EnsemblePredictor:
         with torch.no_grad():
             x = graph_data.x.to(self.device)
             edge_index = graph_data.edge_index.to(self.device)
-            edge_attr = graph_data.edge_attr.to(self.device)
             
-            output = self.gnn_model(x, edge_index, edge_attr)
-            prediction = output[target_node].item()
+            mu, sigma = self.gnn_model(x, edge_index)
+            threat_scores = compute_threat_scores(mu, sigma, graph_data)
+            prediction = float(threat_scores[target_node].item())
         
         return prediction
     

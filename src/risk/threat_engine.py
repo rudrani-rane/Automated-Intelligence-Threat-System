@@ -14,42 +14,61 @@ WATCHLIST_PATH = Path("outputs/watchlist.csv")
 
 
 # Threat Score Calculation
-def compute_threat_scores(mu, sigma, graph):
+def compute_threat_scores(mu, sigma, graph, raw_moid=None, raw_H=None):
+    """
+    Compute hybrid threat score from GNN embeddings + physical orbital parameters.
 
-    # Feature indices (from preprocessing)
-    H_INDEX = 0
-    MOID_INDEX = 10
+    Parameters
+    ----------
+    mu       : GNN mean embedding tensor  (N, D)
+    sigma    : GNN uncertainty tensor     (N, D)
+    graph    : PyG Data object (graph.x contains StandardScaler-normalised features)
+    raw_moid : numpy array of raw MOID values in AU (N,) — preferred over scaled graph feature
+    raw_H    : numpy array of raw absolute magnitude H (N,)  — preferred over scaled graph feature
+    """
+    import numpy as np
 
-    # --- AI latent risk ---
-    latent_risk = torch.norm(mu, dim=1)
-
-    # --- uncertainty factor ---
-    uncertainty = sigma.mean(dim=1)
-
-    # --- orbital proximity risk ---
-    moid = graph.x[:, MOID_INDEX]
-    proximity_risk = 1 / (moid.abs() + 1e-3)
-
-    # --- energy proxy (bigger asteroid = smaller H) ---
-    H = graph.x[:, H_INDEX]
-    energy_proxy = -H
-
-    # Normalize components
     def normalize(x):
         return (x - x.min()) / (x.max() - x.min() + 1e-8)
 
-    latent_risk = normalize(latent_risk)
-    uncertainty = normalize(uncertainty)
-    proximity_risk = normalize(proximity_risk)
-    energy_proxy = normalize(energy_proxy)
+    # --- AI latent risk (L2 norm of GNN embedding) ---
+    latent_risk = normalize(torch.norm(mu, dim=1))
 
-    # Final hybrid threat score
+    # --- GNN uncertainty ---
+    uncertainty = normalize(sigma.mean(dim=1))
+
+    # --- Orbital proximity risk (use raw AU MOID when available) ---
+    if raw_moid is not None:
+        # Raw MOID in AU: values like 0.0001 to 0.5 AU
+        # 1/(moid + eps) gives large values for close-approaching asteroids
+        moid_au = torch.tensor(raw_moid, dtype=torch.float32)
+        proximity_risk = normalize(1.0 / (moid_au.abs() + 1e-4))
+    else:
+        # Fallback: use scaled graph feature (less accurate)
+        moid = graph.x[:, 10]
+        proximity_risk = normalize(1.0 / (moid.abs() + 1e-3))
+
+    # --- Energy proxy: smaller H = larger/brighter asteroid = more dangerous ---
+    if raw_H is not None:
+        H_tensor = torch.tensor(raw_H, dtype=torch.float32)
+        # Low H value → large asteroid → high threat → energy_proxy should be HIGH
+        # So we negate H: large (-H) means small H (big asteroid)
+        energy_proxy = normalize(-H_tensor)
+    else:
+        H = graph.x[:, 0]
+        energy_proxy = normalize(-H)
+
+    # Final hybrid score — weights sum to 1.0
     threat_score = (
         0.35 * latent_risk
         + 0.25 * uncertainty
         + 0.25 * proximity_risk
         + 0.15 * energy_proxy
     )
+
+    # Re-normalize composite to full [0, 1] range so top threats reach critical tier
+    # (CLT otherwise compresses weighted sums of independent factors toward 0.5)
+    threat_score = normalize(threat_score)
 
     return threat_score.detach()
 
