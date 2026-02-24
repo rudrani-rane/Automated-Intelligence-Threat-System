@@ -27,7 +27,10 @@ RUN pip install --no-cache-dir \
     --extra-index-url https://download.pytorch.org/whl/cpu
 
 # Install remaining dependencies (torch lines stripped so pip won't re-download CUDA build)
-RUN grep -v -E '^(torch|torchvision|torchaudio)==' requirements.txt > /tmp/req_notorch.txt && \
+# sed strips Windows \r line endings that break pip when requirements.txt was authored on Windows
+RUN sed 's/\r//' requirements.txt \
+    | grep -v -E '^(torch|torchvision|torchaudio)==' \
+    > /tmp/req_notorch.txt && \
     pip install --no-cache-dir -r /tmp/req_notorch.txt
 
 # Install production WSGI server
