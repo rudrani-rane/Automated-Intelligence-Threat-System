@@ -1,3 +1,15 @@
+---
+title: ATIS - Automated Intelligence Threat System
+emoji: 🛰️
+colorFrom: blue
+colorTo: cyan
+sdk: docker
+app_port: 7860
+pinned: true
+license: mit
+short_description: Planetary Defense Mission Control — AI-powered NEO threat monitoring
+---
+
 # 🛰️ ATIS — Automated Threat Intelligence System
 
 **Planetary Defense Mission Control · Near-Earth Object Monitoring · v1.0**
