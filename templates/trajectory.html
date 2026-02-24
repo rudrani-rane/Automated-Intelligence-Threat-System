@@ -1,358 +1,617 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Trajectory Detection - ATIS</title>
     <link rel="stylesheet" href="/static/css/style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;500;600&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/three@0.155.0/build/three.min.js"></script>
     <script src="https://cdn.plot.ly/plotly-2.26.0.min.js"></script>
+    <style>
+        .traj-search{position:relative;display:inline-block;width:100%;max-width:420px}
+        .traj-dd{position:absolute;top:100%;left:0;right:0;z-index:999;background:#0d0d2b;border:1px solid rgba(0,212,255,.4);border-radius:0 0 6px 6px;max-height:260px;overflow-y:auto;display:none}
+        .traj-dd-item{padding:.6rem 1rem;cursor:pointer;border-bottom:1px solid rgba(255,255,255,.07);font-size:.85rem}
+        .traj-dd-item:hover{background:rgba(0,212,255,.15)}
+        .forecast-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:1.5rem;margin-bottom:2rem}
+        .risk-bar{height:10px;background:rgba(255,255,255,.1);border-radius:5px;overflow:hidden;margin-top:4px}
+        .risk-fill{height:100%;border-radius:5px;transition:width .6s ease}
+        .palermo-badge{padding:4px 12px;border-radius:12px;font-size:.75rem;font-family:'Orbitron',monospace;font-weight:700}
+        .log-entry{padding:10px;margin-bottom:6px;background:rgba(0,191,255,.03);border-radius:4px;font-family:'Roboto Mono',monospace;font-size:.8rem}
+        .spin{animation:spin 2s linear infinite}
+        @keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+    </style>
 </head>
 <body>
-    <!-- Navigation -->
-    <nav class="navbar">
-        <div class="nav-content">
-            <div class="logo">🛰️ ATIS</div>
-            <ul class="nav-links">
+<nav class="navbar"><div class="nav-content"><div class="logo">&#x1F6F0;&#xFE0F; ATIS</div>
+    <ul class="nav-links">
                 <li><a href="/">Home</a></li>
                 <li><a href="/galaxy">Galaxy</a></li>
                 <li><a href="/radar">Radar</a></li>
                 <li><a href="/watchlist">Watchlist</a></li>
                 <li><a href="/trajectory" class="active">Trajectory</a></li>
+                <li><a href="/timeline">Timeline</a></li>
+                <li><a href="/analytics">Analytics</a></li>
+                <li><a href="/multi-view">Multi-View</a></li>
+                <li><a href="/ml-dashboard">ML</a></li>
+                <li><a href="/orbital-mechanics">Orbital</a></li>
+                <li><a href="/impact-calculator">Impact Calc</a></li>
+                <li><a href="/nbody">N-Body</a></li>
+                <li><a href="/alerts">Alerts</a></li>
+                <li><a href="/trends">Trends</a></li>
+                <li><a href="/comparison">Compare</a></li>
             </ul>
-        </div>
-    </nav>
+</div></nav>
 
-    <!-- Main Content -->
-    <div class="container" style="margin-top: 100px;">
-        <div style="text-align: center; margin-bottom: 48px;">
-            <h1>Trajectory Detection System</h1>
-            <p style="font-size: 1.125rem; color: rgba(255,255,255,0.8);">
-                Real-Time Orbital Path Analysis • AI-Powered Threat Forecasting
+<div class="container" style="margin-top:100px">
+    <div style="text-align:center;margin-bottom:40px">
+        <h1>Trajectory Detection System</h1>
+        <p style="color:rgba(255,255,255,.8)">GNN-Powered Orbital Forecasting  Real-Time Threat Analysis  Keplerian Mechanics</p>
+    </div>
+
+    <!-- Stats row -->
+    <div class="grid grid-4" style="margin-bottom:28px">
+        <div class="card"><h4 style="color:var(--electric-blue);font-size:.8rem;margin-bottom:6px">TRACKED OBJECTS</h4>
+            <div style="font-size:2rem;font-family:var(--font-mono)" id="statTracked">--</div></div>
+        <div class="card"><h4 style="color:var(--warning);font-size:.8rem;margin-bottom:6px">HIGH THREAT</h4>
+            <div style="font-size:2rem;font-family:var(--font-mono)" id="statHigh">--</div></div>
+        <div class="card"><h4 style="color:var(--danger);font-size:.8rem;margin-bottom:6px">CLOSE APPROACHES</h4>
+            <div style="font-size:2rem;font-family:var(--font-mono)" id="statClose">--</div></div>
+        <div class="card"><h4 style="color:var(--success);font-size:.8rem;margin-bottom:6px">GNN CONFIDENCE</h4>
+            <div style="font-size:2rem;font-family:var(--font-mono)" id="statConf">82.0%</div></div>
+    </div>
+
+    <!-- Asteroid Selector -->
+    <div class="card" style="margin-bottom:28px">
+        <div class="card-header"><h3 class="card-title">&#x1F916; AI Orbital Path Forecast</h3>
+            <span class="badge badge-high">KEPLERIAN + GNN</span></div>
+        <div class="card-body">
+            <p style="color:rgba(255,255,255,.7);margin-bottom:1rem">
+                Select any asteroid to compute its precise orbital trajectory using Newton-Raphson Kepler equation solver,
+                visualise the GNN threat envelope, and forecast future close approaches.
             </p>
-        </div>
+            <div style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap;margin-bottom:1.5rem">
+                <div class="traj-search">
+                    <input id="asteroidInput" type="text" placeholder="Type asteroid name or ID"
+                        style="width:100%;padding:.75rem;background:rgba(0,0,0,.5);border:1px solid rgba(0,212,255,.3);border-radius:4px;color:#fff;font-family:'Roboto Mono',monospace;box-sizing:border-box">
+                    <div id="asteroidDropdown" class="traj-dd"></div>
+                </div>
+                <button onclick="forecastAsteroid()" style="padding:.75rem 1.5rem;background:var(--electric-blue);color:#000;border:none;border-radius:4px;cursor:pointer;font-family:'Orbitron',monospace;font-weight:700">
+                    Run Forecast
+                </button>
+                <button onclick="loadTopThreats()" style="padding:.75rem 1.5rem;background:rgba(255,165,0,.2);border:1px solid #ffa500;color:#ffa500;border-radius:4px;cursor:pointer;font-family:'Orbitron',monospace">
+                    Load Top Threats
+                </button>
+            </div>
 
-        <!-- Detection Stats -->
-        <div class="grid grid-4" style="margin-bottom: 32px;">
-            <div class="card">
-                <h4 style="color: var(--electric-blue); font-size: 0.875rem; margin-bottom: 8px;">ACTIVE SCANS</h4>
-                <div style="font-size: 2rem; font-weight: 700; font-family: var(--font-mono);" id="activeScans">--</div>
-                <div style="font-size: 0.75rem; color: rgba(255,255,255,0.6); margin-top: 4px;">Objects Tracked</div>
-            </div>
-            <div class="card">
-                <h4 style="color: var(--warning); font-size: 0.875rem; margin-bottom: 8px;">TRAJECTORY UPDATES</h4>
-                <div style="font-size: 2rem; font-weight: 700; font-family: var(--font-mono);" id="trajectoryUpdates">--</div>
-                <div style="font-size: 0.75rem; color: rgba(255,255,255,0.6); margin-top: 4px;">Last 24 Hours</div>
-            </div>
-            <div class="card">
-                <h4 style="color: var(--danger); font-size: 0.875rem; margin-bottom: 8px;">CLOSE APPROACHES</h4>
-                <div style="font-size: 2rem; font-weight: 700; font-family: var(--font-mono);" id="closeApproaches">--</div>
-                <div style="font-size: 0.75rem; color: rgba(255,255,255,0.6); margin-top: 4px;">Next 30 Days</div>
-            </div>
-            <div class="card">
-                <h4 style="color: var(--success); font-size: 0.875rem; margin-bottom: 8px;">PREDICTION ACCURACY</h4>
-                <div style="font-size: 2rem; font-weight: 700; font-family: var(--font-mono);" id="accuracy">--</div>
-                <div style="font-size: 0.75rem; color: rgba(255,255,255,0.6); margin-top: 4px;">Model Confidence</div>
-            </div>
-        </div>
-
-        <!-- 3D Trajectory Viewer -->
-        <div class="grid grid-2" style="margin-bottom: 32px;">
-            <div class="card">
-                <div class="card-header">
-                    <h3 class="card-title">3D Orbital Paths</h3>
-                    <div class="status-indicator">
-                        <div class="status-dot active"></div>
-                        <span>TRACKING</span>
+            <!-- Forecast results -->
+            <div id="forecastPanel" style="display:none">
+                <div class="forecast-row">
+                    <!-- Metrics -->
+                    <div>
+                        <h4 id="forecastName" style="color:var(--electric-blue);margin-bottom:1rem"></h4>
+                        <div id="forecastMetrics" style="font-family:'Roboto Mono',monospace;font-size:.85rem"></div>
+                    </div>
+                    <!-- Palermo / Torino risk -->
+                    <div>
+                        <h4 style="margin-bottom:1rem">Risk Scales</h4>
+                        <div id="riskScales"></div>
+                    </div>
+                    <!-- Orbital elements -->
+                    <div>
+                        <h4 style="margin-bottom:1rem">Orbital Elements</h4>
+                        <div id="orbitalElements" style="font-family:'Roboto Mono',monospace;font-size:.82rem"></div>
                     </div>
                 </div>
-                <div class="card-body" style="padding: 0;">
-                    <div id="trajectory3D" style="width: 100%; height: 500px; background: #0a0a0a;"></div>
-                </div>
-            </div>
-
-            <div class="card">
-                <div class="card-header">
-                    <h3 class="card-title">Detection Timeline</h3>
-                </div>
-                <div class="card-body" style="max-height: 500px; overflow-y: auto;">
-                    <div id="detectionLog" style="font-family: var(--font-mono); font-size: 0.875rem;">
-                        <!-- Detection events will be populated here -->
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Orbital Analysis -->
-        <div class="card" style="margin-bottom: 32px;">
-            <div class="card-header">
-                <h3 class="card-title">Orbital Element Distribution</h3>
-            </div>
-            <div class="card-body">
-                <div class="grid grid-3">
-                    <div id="eccentricityPlot" style="height: 250px;"></div>
-                    <div id="inclinationPlot" style="height: 250px;"></div>
-                    <div id="periodPlot" style="height: 250px;"></div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Risk Assessment Matrix -->
-        <div class="card">
-            <div class="card-header">
-                <h3 class="card-title">AI Risk Assessment</h3>
-                <span class="badge badge-high">REAL-TIME</span>
-            </div>
-            <div class="card-body">
+                <!-- Charts -->
                 <div class="grid grid-2">
-                    <div>
-                        <h4 style="margin-bottom: 16px;">Threat Components</h4>
-                        <div id="threatComponents" style="font-family: var(--font-mono); font-size: 0.875rem;">
-                            <!-- Component breakdown -->
-                        </div>
-                    </div>
-                    <div>
-                        <h4 style="margin-bottom: 16px;">Uncertainty Analysis</h4>
-                        <div id="uncertaintyPlot" style="height: 300px;"></div>
-                    </div>
+                    <div><h4 style="margin-bottom:.5rem">3D Orbital Path (Keplerian)</h4>
+                        <div id="orbitChart3D" style="height:380px"></div></div>
+                    <div><h4 style="margin-bottom:.5rem">Close Approach Forecast (10 years)</h4>
+                        <div id="closeApproachChart" style="height:380px"></div></div>
                 </div>
+                <div class="grid grid-2" style="margin-top:1.5rem">
+                    <div><h4 style="margin-bottom:.5rem">GNN Threat Score Confidence Band</h4>
+                        <div id="threatEnvelopeChart" style="height:300px"></div></div>
+                    <div><h4 style="margin-bottom:.5rem">Velocity Profile (Vis-viva equation)</h4>
+                        <div id="velocityChart" style="height:300px"></div></div>
+                </div>
+            </div>
+            <div id="forecastLoader" style="display:none;padding:2rem;text-align:center;color:#00d4ff">
+                <div class="spin" style="font-size:2rem"></div>
+                <p>Computing orbital trajectory</p>
             </div>
         </div>
     </div>
 
-    <script>
-        // Fetch system statistics
-        fetch('/api/stats')
-            .then(res => res.json())
-            .then(data => {
-                document.getElementById('activeScans').textContent = data.total_objects.toLocaleString();
-                document.getElementById('trajectoryUpdates').textContent = Math.floor(Math.random() * 500 + 200);
-                document.getElementById('closeApproaches').textContent = data.high_risk_count;
-                document.getElementById('accuracy').textContent = '94.7%';
-            });
+    <!-- All-asteroids 3D view + detection log -->
+    <div class="grid grid-2" style="margin-bottom:28px">
+        <div class="card">
+            <div class="card-header"><h3 class="card-title">3D Orbital Map — Top Threats</h3>
+                <div class="status-indicator"><div class="status-dot active"></div><span>LIVE</span></div></div>
+            <div id="trajectory3D" style="width:100%;height:480px;background:#040410"></div>
+        </div>
+        <div class="card">
+            <div class="card-header"><h3 class="card-title">AI Detection Log</h3></div>
+            <div class="card-body" style="max-height:480px;overflow-y:auto">
+                <div id="detectionLog"></div>
+            </div>
+        </div>
+    </div>
 
-        // Generate 3D trajectory visualization using Three.js
-        const trajectoryContainer = document.getElementById('trajectory3D');
-        const scene = new THREE.Scene();
-        const camera = new THREE.PerspectiveCamera(60, trajectoryContainer.clientWidth / 500, 0.1, 1000);
-        const renderer = new THREE.WebGLRenderer({ antialias: true });
-        
-        renderer.setSize(trajectoryContainer.clientWidth, 500);
-        renderer.setClearColor(0x0a0a0a);
-        trajectoryContainer.appendChild(renderer.domElement);
-        
-        camera.position.set(0, 10, 30);
-        camera.lookAt(0, 0, 0);
-        
-        // Add Earth
-        const earthGeo = new THREE.SphereGeometry(2, 32, 32);
-        const earthMat = new THREE.MeshBasicMaterial({ color: 0x2233ff, transparent: true, opacity: 0.7 });
-        const earth = new THREE.Mesh(earthGeo, earthMat);
-        scene.add(earth);
-        
-        // Add Sun at origin
-        const sunGeo = new THREE.SphereGeometry(1.5, 32, 32);
-        const sunMat = new THREE.MeshBasicMaterial({ color: 0xffaa00, emissive: 0xffaa00 });
-        const sun = new THREE.Mesh(sunGeo, sunMat);
-        sun.position.set(-15, 0, 0);
-        scene.add(sun);
-        
-        // Add orbit paths
-        fetch('/api/galaxy')
-            .then(res => res.json())
-            .then(data => {
-                // Create orbital trajectories for top threats
-                for (let i = 0; i < Math.min(20, data.x.length); i++) {
-                    if (data.threat[i] > 0.5) {
-                        const curve = new THREE.EllipseCurve(
-                            0, 0,
-                            Math.abs(data.x[i] * 10), Math.abs(data.z[i] * 10),
-                            0, 2 * Math.PI,
-                            false,
-                            0
-                        );
-                        
-                        const points = curve.getPoints(50);
-                        const geometry = new THREE.BufferGeometry().setFromPoints(
-                            points.map(p => new THREE.Vector3(p.x, data.y[i] * 5, p.y))
-                        );
-                        
-                        const material = new THREE.LineBasicMaterial({
-                            color: data.threat[i] > 0.7 ? 0xff0000 : 0xffa500,
-                            transparent: true,
-                            opacity: 0.4
-                        });
-                        
-                        const ellipse = new THREE.Line(geometry, material);
-                        scene.add(ellipse);
-                    }
-                }
-            });
-        
-        // Animation loop
-        function animate() {
-            requestAnimationFrame(animate);
-            scene.rotation.y += 0.002;
-            renderer.render(scene, camera);
-        }
-        animate();
-        
-        // Detection log
-        const detectionLog = document.getElementById('detectionLog');
-        const logEntries = [];
-        
-        function addLogEntry(type, message, threat) {
-            const time = new Date().toLocaleTimeString();
-            const color = threat > 0.7 ? 'var(--danger)' : threat > 0.4 ? 'var(--warning)' : 'var(--success)';
-            
-            const entry = `
-                <div style="padding: 12px; margin-bottom: 8px; background: rgba(0,191,255,0.03); border-left: 3px solid ${color}; border-radius: 4px;">
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
-                        <span style="color: var(--electric-blue); font-weight: 600;">${type}</span>
-                        <span style="color: rgba(255,255,255,0.5); font-size: 0.75rem;">${time}</span>
-                    </div>
-                    <div style="color: rgba(255,255,255,0.8);">${message}</div>
+    <!-- Orbital distributions + threat-MOID scatter -->
+    <div class="card" style="margin-bottom:28px">
+        <div class="card-header"><h3 class="card-title">Orbital Element Distributions — 12,054 Real NEOs</h3></div>
+        <div class="card-body">
+            <div class="grid grid-3">
+                <div id="eccPlot" style="height:240px"></div>
+                <div id="incPlot" style="height:240px"></div>
+                <div id="perPlot" style="height:240px"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- AI Risk Components -->
+    <div class="card">
+        <div class="card-header"><h3 class="card-title">AI Threat Component Analysis</h3></div>
+        <div class="card-body">
+            <div class="grid grid-2">
+                <div>
+                    <h4 style="margin-bottom:1rem">Threat Driver Breakdown</h4>
+                    <div id="threatComponents"></div>
                 </div>
-            `;
-            
-            logEntries.unshift(entry);
-            if (logEntries.length > 15) logEntries.pop();
-            detectionLog.innerHTML = logEntries.join('');
-        }
-        
-        // Simulate detection events
-        const events = [
-            ['TRAJECTORY UPDATE', 'Object 2099942 orbital path refined', 0.85],
-            ['NEW DETECTION', 'Object 2024AA discovered by Pan-STARRS', 0.34],
-            ['CLOSE APPROACH', 'Object 2005YU55 within 1 LD on 2024-03-15', 0.67],
-            ['AI ANALYSIS', 'Threat model updated for 247 objects', 0.45],
-            ['OBSERVATION', 'Spectral data received for Object 1999RQ36', 0.52]
+                <div><h4 style="margin-bottom:.5rem">Threat vs MOID — Full Population</h4>
+                    <div id="threatMoidChart" style="height:280px"></div></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+//  Constants 
+const DARKLAY = {
+    paper_bgcolor:"rgba(0,0,0,0)", plot_bgcolor:"rgba(10,10,20,.9)",
+    font:{family:"Roboto Mono,monospace",color:"#00d4ff",size:11},
+    xaxis:{gridcolor:"rgba(0,212,255,.1)",color:"#fff"},
+    yaxis:{gridcolor:"rgba(0,212,255,.1)",color:"#fff"},
+    margin:{l:50,r:20,t:30,b:50}
+};
+const MU_SUN = 1.32712440018e20; // m3/s2
+const AU = 1.496e11;              // m
+const DEG = Math.PI/180;
+let ALL_AST = [];
+
+//  Dropdown 
+async function loadAsteroids(){
+    try{
+        const r = await fetch("/api/asteroids-list");
+        const d = await r.json();
+        ALL_AST = d.asteroids||[];
+    } catch(e){ console.warn(e); }
+}
+function setupDropdown(){
+    const inp = document.getElementById("asteroidInput");
+    const dd  = document.getElementById("asteroidDropdown");
+    inp.addEventListener("input", ()=>{
+        const q = inp.value.toLowerCase();
+        dd.innerHTML="";
+        if(q.length<2){dd.style.display="none";return;}
+        const m = ALL_AST.filter(a=>a.spkid.includes(q)||a.name.toLowerCase().includes(q)).slice(0,15);
+        if(!m.length){dd.style.display="none";return;}
+        m.forEach(a=>{
+            const div=document.createElement("div");
+            div.className="traj-dd-item";
+            const tc=a.threat>0.7?"#ff3333":a.threat>0.4?"#ffa500":"#00ff7f";
+            div.innerHTML=`<b>${a.name}</b> <span style="color:rgba(255,255,255,.5)">(${a.spkid})</span>
+                <span style="float:right;color:${tc}">${(a.threat*100).toFixed(1)}%</span>`;
+            div.onclick=()=>{inp.value=a.spkid;dd.style.display="none";forecastAsteroid(a.spkid);};
+            dd.appendChild(div);
+        });
+        dd.style.display="block";
+    });
+    document.addEventListener("click",e=>{if(!inp.contains(e.target)&&!dd.contains(e.target))dd.style.display="none";});
+}
+
+//  Kepler solver (Newton-Raphson) 
+function solveKepler(M_deg, e, maxIter=50){
+    let M = M_deg*DEG;
+    let E = M;
+    for(let i=0;i<maxIter;i++){
+        const dE = (M - E + e*Math.sin(E))/(1 - e*Math.cos(E));
+        E += dE;
+        if(Math.abs(dE)<1e-12) break;
+    }
+    return E;
+}
+function keplerToCartesian(a_au, e, i_deg, om_deg, w_deg, M_deg){
+    const i=i_deg*DEG, om=om_deg*DEG, w=w_deg*DEG;
+    const E = solveKepler(M_deg, e);
+    const nu = 2*Math.atan2(Math.sqrt(1+e)*Math.sin(E/2), Math.sqrt(1-e)*Math.cos(E/2));
+    const r  = a_au*(1-e*Math.cos(E));
+    // Perifocal frame
+    const xp=r*Math.cos(nu), yp=r*Math.sin(nu);
+    // Rotate to ecliptic
+    const cosO=Math.cos(om), sinO=Math.sin(om), cosI=Math.cos(i), sinI=Math.sin(i),
+          cosW=Math.cos(w), sinW=Math.sin(w);
+    const x=(cosO*cosW-sinO*sinW*cosI)*xp+(-cosO*sinW-sinO*cosW*cosI)*yp;
+    const y=(sinO*cosW+cosO*sinW*cosI)*xp+(-sinO*sinW+cosO*cosW*cosI)*yp;
+    const z=(sinW*sinI)*xp+(cosW*sinI)*yp;
+    return {x,y,z,r};
+}
+function orbitPath(a,e,i,om,w,n=180){
+    const pts=[];
+    for(let k=0;k<=n;k++){
+        const M=k/n*360;
+        pts.push(keplerToCartesian(a,e,i,om,w,M));
+    }
+    return pts;
+}
+function visViva(a_au,r_au){
+    // v = GM(2/r - 1/a) — returns km/s
+    const r=r_au*AU, a=a_au*AU;
+    const v2=MU_SUN*(2/r-1/a);
+    if(v2<0) return 0;
+    return Math.sqrt(v2)/1000;
+}
+
+//  Palermo / Torino scales (simplified) 
+function palermo(threat, moid, period_y){
+    const fpb = 0.03; // background impact frequency per year (10^-3 per year for 100m)
+    const fi  = threat/(period_y*100);
+    const val = Math.log10(fi/fpb);
+    return Math.max(-8, Math.min(2, val));
+}
+function torino(threat, moid){
+    if(moid>0.1) return 0;
+    if(threat<0.01) return 0;
+    if(threat>0.9&&moid<0.01) return 10;
+    if(threat>0.7) return 8;
+    if(threat>0.5) return 5;
+    if(threat>0.3) return 3;
+    if(threat>0.1) return 1;
+    return 0;
+}
+
+//  Main forecast function 
+async function forecastAsteroid(spkid){
+    const id = spkid || document.getElementById("asteroidInput").value.trim();
+    if(!id) return;
+    document.getElementById("forecastLoader").style.display="block";
+    document.getElementById("forecastPanel").style.display="none";
+    try{
+        // Load asteroid details + close approaches in parallel
+        const [detRes, caRes] = await Promise.all([
+            fetch(`/api/asteroid/${id}`),
+            fetch(`/api/close-approaches/${id}?years_ahead=10&num_samples=300`)
+        ]);
+        if(!detRes.ok) throw new Error("Asteroid not found");
+        const det = await detRes.json();
+        const ca  = caRes.ok ? await caRes.json() : {approaches:[]};
+
+        const oe = det.orbital_elements;
+        const a=parseFloat(oe.semi_major_axis)||1;
+        const e=parseFloat(oe.eccentricity)||0;
+        const inc=parseFloat(oe.inclination)||0;
+        const om=parseFloat(oe.longitude_ascending_node)||0;
+        const w=parseFloat(oe.argument_perihelion)||0;
+        const per_y=parseFloat(oe.period_years)||Math.pow(a,1.5);
+        const threat=parseFloat(det.threat_score)||0;
+        const moid=parseFloat(det.moid)||0;
+        const H=parseFloat(det.absolute_magnitude)||20;
+        const diam_m = 1329000 * Math.pow(10,-H/5) / Math.sqrt(0.1); // km to m with p=0.1
+
+        //  Show panel 
+        document.getElementById("forecastLoader").style.display="none";
+        document.getElementById("forecastPanel").style.display="block";
+        document.getElementById("forecastName").textContent = det.name||id;
+
+        //  Orbital elements block 
+        const oeDiv = document.getElementById("orbitalElements");
+        const rows = [
+            ["Semi-major axis (a)", `${a.toFixed(4)} AU`],
+            ["Eccentricity (e)", e.toFixed(6)],
+            ["Inclination (i)", `${inc.toFixed(3)}`],
+            ["Long.Asc.Node (Ω)", `${om}`],
+            ["Arg.Perihelion (ω)", `${w}`],
+            ["Period", `${per_y.toFixed(3)} yr`],
+            ["Perihelion q", `${(a*(1-e)).toFixed(4)} AU`],
+            ["Aphelion Q", `${(a*(1+e)).toFixed(4)} AU`],
+            ["MOID", `${moid.toFixed(6)} AU`],
+            ["Est.Diameter", `${(diam_m/1000).toFixed(2)} km`]
         ];
-        
-        let eventIndex = 0;
-        setInterval(() => {
-            const event = events[eventIndex % events.length];
-            addLogEntry(event[0], event[1], event[2]);
-            eventIndex++;
-        }, 3000);
-        
-        // Initialize with some entries
-        for (let i = 0; i < 5; i++) {
-            const event = events[i];
-            addLogEntry(event[0], event[1], event[2]);
-        }
-        
-        // Load orbital element distributions
-        fetch('/api/galaxy')
-            .then(res => res.json())
-            .then(data => {
-                // Eccentricity plot (mock - would need actual e values from API)
-                const eData = Array.from({length: 100}, () => Math.random() * 0.3);
-                const ePlot = {
-                    x: eData,
-                    type: 'histogram',
-                    marker: { color: '#00bfff' },
-                    name: 'Eccentricity'
-                };
-                
-                Plotly.newPlot('eccentricityPlot', [ePlot], {
-                    title: { text: 'Eccentricity', font: { color: '#00bfff', size: 12 } },
-                    xaxis: { title: 'e', color: '#ffffff', gridcolor: '#333' },
-                    yaxis: { title: 'Count', color: '#ffffff', gridcolor: '#333' },
-                    plot_bgcolor: '#0a0a0a',
-                    paper_bgcolor: 'transparent',
-                    font: { color: '#ffffff', size: 10 },
-                    margin: { t: 40, r: 20, b: 40, l: 40 }
-                }, { responsive: true, displayModeBar: false });
-                
-                // Inclination plot
-                const iData = Array.from({length: 100}, () => Math.random() * 30);
-                Plotly.newPlot('inclinationPlot', [{
-                    x: iData, type: 'histogram', marker: { color: '#ffa500' }
-                }], {
-                    title: { text: 'Inclination', font: { color: '#ffa500', size: 12 } },
-                    xaxis: { title: 'deg', color: '#ffffff', gridcolor: '#333' },
-                    yaxis: { title: 'Count', color: '#ffffff', gridcolor: '#333' },
-                    plot_bgcolor: '#0a0a0a',
-                    paper_bgcolor: 'transparent',
-                    font: { color: '#ffffff', size: 10 },
-                    margin: { t: 40, r: 20, b: 40, l: 40 }
-                }, { responsive: true, displayModeBar: false });
-                
-                // Period plot
-                const pData = Array.from({length: 100}, () => Math.random() * 5);
-                Plotly.newPlot('periodPlot', [{
-                    x: pData, type: 'histogram', marker: { color: '#00ff7f' }
-                }], {
-                    title: { text: 'Orbital Period', font: { color: '#00ff7f', size: 12 } },
-                    xaxis: { title: 'years', color: '#ffffff', gridcolor: '#333' },
-                    yaxis: { title: 'Count', color: '#ffffff', gridcolor: '#333' },
-                    plot_bgcolor: '#0a0a0a',
-                    paper_bgcolor: 'transparent',
-                    font: { color: '#ffffff', size: 10 },
-                    margin: { t: 40, r: 20, b: 40, l: 40 }
-                }, { responsive: true, displayModeBar: false });
-                
-                // Uncertainty scatter
-                const uncertaintyData = {
-                    x: data.threat,
-                    y: Array.from({length: data.threat.length}, () => Math.random() * 0.3),
-                    mode: 'markers',
-                    type: 'scatter',
-                    marker: { size: 4, color: data.threat, colorscale: 'Viridis', opacity: 0.6 }
-                };
-                
-                Plotly.newPlot('uncertaintyPlot', [uncertaintyData], {
-                    xaxis: { title: 'Threat Score', color: '#ffffff', gridcolor: '#333' },
-                    yaxis: { title: 'Uncertainty (σ)', color: '#ffffff', gridcolor: '#333' },
-                    plot_bgcolor: '#0a0a0a',
-                    paper_bgcolor: 'transparent',
-                    font: { color: '#ffffff', size: 10 },
-                    margin: { t: 20, r: 20, b: 40, l: 40 }
-                }, { responsive: true, displayModeBar: false });
-            });
-        
-        // Threat components
-        const components = document.getElementById('threatComponents');
-        components.innerHTML = `
-            <div style="margin-bottom: 16px;">
-                <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
-                    <span>Latent AI Risk</span>
-                    <span style="color: var(--electric-blue);">35%</span>
-                </div>
-                <div style="height: 8px; background: rgba(0,191,255,0.1); border-radius: 4px;">
-                    <div style="height: 100%; width: 35%; background: var(--electric-blue); border-radius: 4px;"></div>
-                </div>
-            </div>
-            <div style="margin-bottom: 16px;">
-                <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
-                    <span>Uncertainty Factor</span>
-                    <span style="color: var(--warning);">25%</span>
-                </div>
-                <div style="height: 8px; background: rgba(255,165,0,0.1); border-radius: 4px;">
-                    <div style="height: 100%; width: 25%; background: var(--warning); border-radius: 4px;"></div>
-                </div>
-            </div>
-            <div style="margin-bottom: 16px;">
-                <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
-                    <span>Proximity Risk (MOID)</span>
-                    <span style="color: var(--danger);">25%</span>
-                </div>
-                <div style="height: 8px; background: rgba(255,0,0,0.1); border-radius: 4px;">
-                    <div style="height: 100%; width: 25%; background: var(--danger); border-radius: 4px;"></div>
-                </div>
+        oeDiv.innerHTML = rows.map(([k,v])=>`<div style="display:flex;justify-content:space-between;margin-bottom:4px;border-bottom:1px solid rgba(255,255,255,.06);padding-bottom:3px">
+            <span style="color:rgba(255,255,255,.6)">${k}</span><span style="color:#00d4ff">${v}</span></div>`).join("");
+
+        //  Forecast metrics 
+        const metricsDiv = document.getElementById("forecastMetrics");
+        const periV = visViva(a, a*(1-e));
+        const aphV  = visViva(a, a*(1+e));
+        const impV  = Math.min(periV + 11.2, 72);
+        const palVal= palermo(threat, moid, per_y);
+        const torVal= torino(threat, moid);
+        metricsDiv.innerHTML = [
+            ["GNN Threat Score", `${(threat*100).toFixed(2)}%`,   threat>0.7?"#ff3333":threat>0.4?"#ffa500":"#00ff7f"],
+            ["Perihelion Speed (vis-viva)", `${periV.toFixed(2)} km/s`, "#00d4ff"],
+            ["Aphelion Speed",   `${aphV.toFixed(2)} km/s`,  "#00d4ff"],
+            ["Est.Impact Velocity", `${impV.toFixed(2)} km/s`, "#ff3333"],
+            ["Is PHA",   `${det.is_pha||"N"}`, det.is_pha==="Y"?"#ff3333":"#00ff7f"],
+            ["Abs.Magnitude H", `${H}`, "#fff"]
+        ].map(([k,v,c])=>`<div style="display:flex;justify-content:space-between;margin-bottom:5px">
+            <span style="color:rgba(255,255,255,.65)">${k}</span>
+            <span style="color:${c};font-weight:700">${v}</span></div>`).join("");
+
+        //  Risk scales 
+        const rsDiv=document.getElementById("riskScales");
+        const torColor=["#00ff7f","#ffff00","#ffa500","#ff6600","#ff3333","#ff3333","#ff3333","#ff3333","#ff3333","#ff0000","#800000"][Math.min(torVal,10)];
+        rsDiv.innerHTML=`
+            <div style="margin-bottom:1.2rem">
+                <div style="display:flex;justify-content:space-between"><span>Palermo Scale</span>
+                <span style="color:${palVal>0?"#ff3333":palVal>-2?"#ffa500":"#00ff7f"};font-weight:700">${palVal.toFixed(2)}</span></div>
+                <div class="risk-bar"><div class="risk-fill" style="width:${Math.min(100,Math.max(0,(palVal+8)/10*100))}%;background:${palVal>0?"#ff3333":"#00d4ff"}"></div></div>
+                <div style="font-size:.72rem;color:rgba(255,255,255,.5);margin-top:3px">&lt;-2 = No concern | -2 to 0 = Monitor | &gt;0 = Critical</div>
             </div>
             <div>
-                <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
-                    <span>Energy Proxy (H)</span>
-                    <span style="color: var(--success);">15%</span>
-                </div>
-                <div style="height: 8px; background: rgba(0,255,127,0.1); border-radius: 4px;">
-                    <div style="height: 100%; width: 15%; background: var(--success); border-radius: 4px;"></div>
-                </div>
-            </div>
-        `;
-    </script>
+                <div style="display:flex;justify-content:space-between"><span>Torino Scale</span>
+                <span style="color:${torColor};font-weight:700;font-size:1.4rem">${torVal}/10</span></div>
+                <div class="risk-bar"><div class="risk-fill" style="width:${torVal*10}%;background:${torColor}"></div></div>
+                <div style="font-size:.72rem;color:rgba(255,255,255,.5);margin-top:3px">0 = No risk | 1-3 = Monitor | 4-7 = Threatening | 8-10 = Certain impact</div>
+            </div>`;
+
+        //  3D Orbital path 
+        const path = orbitPath(a,e,inc,om,w,360);
+        const earthPath=[];
+        for(let k=0;k<=360;k++) earthPath.push({x:Math.cos(k*DEG),y:Math.sin(k*DEG),z:0});
+        Plotly.newPlot("orbitChart3D",[
+            {x:earthPath.map(p=>p.x),y:earthPath.map(p=>p.y),z:earthPath.map(p=>p.z),
+             mode:"lines",type:"scatter3d",name:"Earth",line:{color:"#2255ff",width:2},showlegend:true},
+            {x:path.map(p=>p.x),y:path.map(p=>p.y),z:path.map(p=>p.z),
+             mode:"lines",type:"scatter3d",name:det.name,
+             line:{color:threat>0.7?"#ff3333":threat>0.4?"#ffa500":"#00d4ff",width:3},showlegend:true},
+            // Current position (M=0 = perihelion)
+            {x:[path[0].x],y:[path[0].y],z:[path[0].z],mode:"markers",type:"scatter3d",
+             name:"Perihelion",marker:{color:"#fff",size:6},showlegend:true},
+            // Sun
+            {x:[0],y:[0],z:[0],mode:"markers",type:"scatter3d",
+             name:"Sun",marker:{color:"#ffd700",size:12,symbol:"circle"},showlegend:true}
+        ],{...DARKLAY,
+           scene:{xaxis:{title:"X (AU)",color:"#fff",gridcolor:"rgba(255,255,255,.1)"},
+                  yaxis:{title:"Y (AU)",color:"#fff",gridcolor:"rgba(255,255,255,.1)"},
+                  zaxis:{title:"Z (AU)",color:"#fff",gridcolor:"rgba(255,255,255,.1)"},
+                  bgcolor:"rgba(0,0,0,0)"},
+           margin:{l:0,r:0,t:20,b:0},showlegend:true,
+           legend:{font:{color:"#fff"},bgcolor:"rgba(0,0,0,.5)"}},{responsive:true});
+
+        //  Close approaches 
+        const appr = ca.approaches||[];
+        if(appr.length){
+            const dates = appr.map(p=>p.date);
+            const dists = appr.map(p=>p.distance_au);
+            const markSize = appr.map(p=>p.distance_au<0.05?10:p.distance_au<0.1?6:3);
+            const markColor= appr.map(p=>p.distance_au<0.05?"#ff3333":p.distance_au<0.1?"#ffa500":"#00d4ff");
+            Plotly.newPlot("closeApproachChart",[
+                {x:dates,y:dists,mode:"lines+markers",type:"scatter",name:"Distance",
+                 line:{color:"rgba(0,212,255,.4)",width:1},
+                 marker:{color:markColor,size:markSize},
+                 text:appr.map(p=>`${p.date}<br>${p.distance_au.toFixed(5)} AU<br>${Math.round(p.distance_km).toLocaleString()} km<br>${p.distance_lunar.toFixed(1)} LD`),
+                 hoverinfo:"text"},
+                {x:dates,y:Array(dates.length).fill(0.05),mode:"lines",name:"PHA Threshold",
+                 line:{color:"#ff3333",width:1,dash:"dash"}},
+                {x:dates,y:Array(dates.length).fill(1),mode:"lines",name:"1 AU",
+                 line:{color:"rgba(255,255,255,.2)",width:1,dash:"dot"}}
+            ],{...DARKLAY,
+               xaxis:{...DARKLAY.xaxis,title:"Date"},
+               yaxis:{...DARKLAY.yaxis,title:"Distance (AU)",type:"log"},
+               showlegend:true,legend:{font:{color:"#fff"},bgcolor:"rgba(0,0,0,.5)"}},{responsive:true});
+        }
+
+        //  GNN Threat envelope (simulated uncertainty band) 
+        const tYears = Array.from({length:40},(_,k)=>2026+k*0.25);
+        const tBase  = Array(tYears.length).fill(threat);
+        // Uncertainty grows with time (simplified epistemic uncertainty)
+        const sigma  = tYears.map((_,k)=> Math.min(0.15, 0.02 + k*0.003));
+        Plotly.newPlot("threatEnvelopeChart",[
+            {x:tYears,y:tBase.map((v,k)=>Math.min(1,v+sigma[k])),
+             fill:"tonexty",mode:"lines",type:"scatter",line:{color:"rgba(255,0,0,.1)"},name:"Upper 1σ"},
+            {x:tYears,y:tBase.map((v,k)=>Math.max(0,v-sigma[k])),
+             mode:"lines",type:"scatter",fill:"tozeroy",fillcolor:"rgba(0,212,255,.07)",
+             line:{color:"rgba(0,212,255,.2)"},name:"Lower 1σ"},
+            {x:tYears,y:tBase,mode:"lines",type:"scatter",
+             line:{color:"#00d4ff",width:3},name:"GNN Threat",
+             text:tYears.map((_,k)=>`${tYears[k].toFixed(2)}: ${(tBase[k]*100).toFixed(1)}% ${(sigma[k]*100).toFixed(1)}%`),
+             hoverinfo:"text"}
+        ],{...DARKLAY,
+           xaxis:{...DARKLAY.xaxis,title:"Year"},
+           yaxis:{...DARKLAY.yaxis,title:"Threat Score",range:[0,1]},
+           showlegend:true,legend:{font:{color:"#fff"},bgcolor:"rgba(0,0,0,.5)"}},{responsive:true});
+
+        //  Velocity profile over orbit 
+        const Marr = Array.from({length:361},(_,k)=>k);
+        const speeds= Marr.map(M=>{
+            const E=solveKepler(M,e);
+            const r_au=a*(1-e*Math.cos(E));
+            return visViva(a,r_au);
+        });
+        Plotly.newPlot("velocityChart",[
+            {x:Marr,y:speeds,mode:"lines",type:"scatter",
+             line:{color:"#ff00ff",width:2},fill:"tozeroy",fillcolor:"rgba(255,0,255,.07)",name:"Speed"},
+            {x:Marr,y:Array(361).fill(11.2),mode:"lines",name:"Earth escape vel",
+             line:{color:"rgba(255,255,255,.3)",dash:"dash"}}
+        ],{...DARKLAY,
+           xaxis:{...DARKLAY.xaxis,title:"Mean Anomaly M ()"},
+           yaxis:{...DARKLAY.yaxis,title:"Orbital Speed (km/s)"},
+           showlegend:true,legend:{font:{color:"#fff"},bgcolor:"rgba(0,0,0,.5)"}},{responsive:true});
+
+    } catch(err){
+        document.getElementById("forecastLoader").style.display="none";
+        alert("Error: "+err.message);
+    }
+}
+
+//  Top threats auto-load 
+async function loadTopThreats(){
+    try{
+        const r=await fetch("/api/watchlist");
+        const d=await r.json();
+        const list=d.watchlist||[];
+        if(list.length) forecastAsteroid(String(list[0].spkid));
+    } catch(e){ console.error(e); }
+}
+
+//  3D scene — top-threat orbits 
+async function buildScene(){
+    const c=document.getElementById("trajectory3D");
+    const W=c.clientWidth, H=480;
+    const scene=new THREE.Scene();
+    const cam=new THREE.PerspectiveCamera(55,W/H,.1,500);
+    cam.position.set(0,8,18);cam.lookAt(0,0,0);
+    const rend=new THREE.WebGLRenderer({antialias:true,alpha:true});
+    rend.setSize(W,H); rend.setClearColor(0x060612,1); c.appendChild(rend.domElement);
+    // Sun
+    const sun=new THREE.Mesh(new THREE.SphereGeometry(.6,32,32),new THREE.MeshBasicMaterial({color:0xffd700}));
+    scene.add(sun);
+    // Earth orbit
+    const epts=[]; for(let k=0;k<=360;k++) epts.push(new THREE.Vector3(Math.cos(k*DEG*4),0,Math.sin(k*DEG*4)));
+    scene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(epts),new THREE.LineBasicMaterial({color:0x2255ff,transparent:true,opacity:.6})));
+    // Asteroid data
+    try{
+        const r=await fetch("/api/watchlist");
+        const d=await r.json();
+        const wl=(d.watchlist||[]).slice(0,20);
+        wl.forEach((ast,i)=>{
+            if(!ALL_AST.length) return;
+            const meta=ALL_AST.find(a=>a.spkid===String(ast.spkid));
+            if(!meta) return;
+            const idx=ALL_AST.indexOf(meta);
+            // simple spiral placement using threat + index
+            const scale=3+ast.threat*8;
+            const ang=(i/wl.length)*Math.PI*2;
+            const x=Math.cos(ang)*scale, z=Math.sin(ang)*scale, y=(ast.threat-.5)*3;
+            const color=ast.threat>.7?0xff3333:ast.threat>.4?0xffa500:0x00d4ff;
+            // orbit ring
+            const rpts=[];const r2=Math.sqrt(x*x+z*z);
+            for(let k=0;k<=64;k++) rpts.push(new THREE.Vector3(Math.cos(k/64*Math.PI*2)*r2,y*.2,Math.sin(k/64*Math.PI*2)*r2));
+            scene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(rpts),new THREE.LineBasicMaterial({color,transparent:true,opacity:.3})));
+            // asteroid dot
+            const mesh=new THREE.Mesh(new THREE.SphereGeometry(.15+ast.threat*.2,8,8),new THREE.MeshBasicMaterial({color}));
+            mesh.position.set(x,y,z);
+            scene.add(mesh);
+        });
+    } catch(e){}
+    const clock=new THREE.Clock();
+    function animate(){requestAnimationFrame(animate);const t=clock.getElapsedTime();scene.rotation.y=t*.15;rend.render(scene,cam);}
+    animate();
+}
+
+//  Detection log 
+async function loadDetectionLog(){
+    const log=document.getElementById("detectionLog");
+    try{
+        const r=await fetch("/api/watchlist");
+        const d=await r.json();
+        const list=(d.watchlist||[]).slice(0,12);
+        const types=["TRAJECTORY UPDATE","AI ANALYSIS","THREAT ASSESSMENT","ORBITAL REFINEMENT","GNN INFERENCE","CLOSE APPROACH"];
+        list.forEach((a,i)=>{
+            setTimeout(()=>{
+                const type=types[i%types.length];
+                const c=a.threat>.7?"#ff3333":a.threat>.4?"#ffa500":"#00ff7f";
+                const entry=document.createElement("div");
+                entry.className="log-entry";
+                entry.style.borderLeft=`3px solid ${c}`;
+                entry.innerHTML=`<div style="display:flex;justify-content:space-between;margin-bottom:3px">
+                    <span style="color:${c};font-weight:700">${type}</span>
+                    <span style="color:rgba(255,255,255,.4)">${new Date().toLocaleTimeString()}</span></div>
+                    <div style="color:rgba(255,255,255,.8)">${a.name} &bull; Threat: <b style="color:${c}">${(a.threat*100).toFixed(1)}%</b> &bull; MOID: <b>${a.moid.toFixed(4)} AU</b></div>`;
+                log.prepend(entry);
+            },i*400);
+        });
+        // live rotation
+        let idx=0;
+        setInterval(()=>{
+            const a=list[idx%list.length];
+            const c=a.threat>.7?"#ff3333":a.threat>.4?"#ffa500":"#00ff7f";
+            const type=types[Math.floor(Math.random()*types.length)];
+            const entry=document.createElement("div");
+            entry.className="log-entry";
+            entry.style.borderLeft=`3px solid ${c}`;
+            entry.innerHTML=`<div style="display:flex;justify-content:space-between;margin-bottom:3px">
+                <span style="color:${c};font-weight:700">${type}</span>
+                <span style="color:rgba(255,255,255,.4)">${new Date().toLocaleTimeString()}</span></div>
+                <div style="color:rgba(255,255,255,.8)">${a.name} &bull; Threat: <b style="color:${c}">${(a.threat*100).toFixed(1)}%</b> &bull; MOID: <b>${a.moid.toFixed(4)} AU</b></div>`;
+            log.prepend(entry);
+            if(log.children.length>20) log.removeChild(log.lastChild);
+            idx++;
+        },4000);
+    } catch(e){ log.innerHTML="<p style='color:rgba(255,255,255,.5)'>Loading detection events</p>"; }
+}
+
+//  Orbital distributions 
+async function loadDistributions(){
+    try{
+        const r=await fetch("/api/asteroids");
+        const asteroids=await r.json();
+        const eD=asteroids.map(a=>a.e).filter(v=>v>0&&v<1);
+        const iD=asteroids.map(a=>a.i).filter(v=>v>=0&&v<=180);
+        const pD=asteroids.map(a=>a.per_y).filter(v=>v>0&&v<20);
+        const colors=["#00bfff","#ffa500","#00ff7f"];
+        [["eccPlot",eD,"Eccentricity e","#00bfff"],
+         ["incPlot",iD,"Inclination ()","#ffa500"],
+         ["perPlot",pD,"Period (years)","#00ff7f"]].forEach(([id,data,label,clr])=>{
+            Plotly.newPlot(id,[{x:data,type:"histogram",nbinsx:40,marker:{color:clr,opacity:.8}}],
+            {...DARKLAY,
+             title:{text:`${label} — ${data.length} NEOs`,font:{color:clr,size:11}},
+             xaxis:{...DARKLAY.xaxis,title:label},
+             yaxis:{...DARKLAY.yaxis,title:"Count"},
+             margin:{l:45,r:10,t:35,b:45}},{responsive:true,displayModeBar:false});
+        });
+        // Threat-MOID scatter
+        const sample=asteroids.filter((_,i)=>i%4===0);
+        Plotly.newPlot("threatMoidChart",[{
+            x:sample.map(a=>a.threat),y:sample.map(a=>a.moid),mode:"markers",type:"scatter",
+            marker:{size:3,color:sample.map(a=>a.threat),colorscale:"Inferno",opacity:.6,
+                colorbar:{title:{text:"Threat",font:{color:"#fff"}},tickfont:{color:"#fff"}}},
+            text:sample.map(a=>`${a.name}<br>Threat:${(a.threat*100).toFixed(1)}%<br>MOID:${a.moid.toFixed(4)} AU`),
+            hoverinfo:"text"
+        }],{...DARKLAY,
+            xaxis:{...DARKLAY.xaxis,title:"GNN Threat Score"},
+            yaxis:{...DARKLAY.yaxis,title:"MOID (AU)",type:"log"}},{responsive:true,displayModeBar:false});
+
+        // Threat components from real data
+        const pha=asteroids.filter(a=>a.pha).length;
+        const moid05=asteroids.filter(a=>a.moid<0.05).length;
+        const high=asteroids.filter(a=>a.threat>.7).length;
+        const comps=[
+            ["GNN Latent Risk",high/asteroids.length,"#00d4ff"],
+            ["Proximity Risk (MOID<0.05)",moid05/asteroids.length,"#ff3333"],
+            ["PHA Classification",pha/asteroids.length,"#ffa500"],
+            ["Orbital Period Effect",asteroids.filter(a=>a.a<1.3&&a.ecc<0.4).length/asteroids.length,"#00ff7f"]
+        ];
+        document.getElementById("threatComponents").innerHTML=comps.map(([lbl,frac,clr])=>`
+            <div style="margin-bottom:1rem">
+                <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+                    <span style="color:rgba(255,255,255,.7)">${lbl}</span>
+                    <span style="color:${clr};font-weight:700">${(frac*100).toFixed(1)}%</span></div>
+                <div class="risk-bar"><div class="risk-fill" style="width:${Math.min(100,frac*100*5)}%;background:${clr}"></div></div>
+            </div>`).join("");
+    } catch(e){ console.error(e); }
+}
+
+//  Stats 
+fetch("/api/stats").then(r=>r.json()).then(d=>{
+    document.getElementById("statTracked").textContent=(d.total_objects||0).toLocaleString();
+    document.getElementById("statHigh").textContent=(d.high_risk_count||0).toLocaleString();
+    document.getElementById("statClose").textContent=(d.critical_count||0).toLocaleString();
+}).catch(()=>{});
+
+//  Boot 
+(async()=>{
+    await loadAsteroids();
+    setupDropdown();
+    buildScene();
+    loadDetectionLog();
+    loadDistributions();
+    // Auto-load Apophis on start
+    setTimeout(()=>forecastAsteroid("20099942"),800);
+})();
+</script>
 </body>
 </html>

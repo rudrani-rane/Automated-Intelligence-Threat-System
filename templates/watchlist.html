@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -11,13 +11,23 @@
     <!-- Navigation -->
     <nav class="navbar">
         <div class="nav-content">
-            <div class="logo">🛰️ ATIS</div>
+            <div class="logo">&#x1F6F0;&#xFE0F; ATIS</div>
             <ul class="nav-links">
                 <li><a href="/">Home</a></li>
                 <li><a href="/galaxy">Galaxy</a></li>
                 <li><a href="/radar">Radar</a></li>
                 <li><a href="/watchlist" class="active">Watchlist</a></li>
                 <li><a href="/trajectory">Trajectory</a></li>
+                <li><a href="/timeline">Timeline</a></li>
+                <li><a href="/analytics">Analytics</a></li>
+                <li><a href="/multi-view">Multi-View</a></li>
+                <li><a href="/ml-dashboard">ML</a></li>
+                <li><a href="/orbital-mechanics">Orbital</a></li>
+                <li><a href="/impact-calculator">Impact Calc</a></li>
+                <li><a href="/nbody">N-Body</a></li>
+                <li><a href="/alerts">Alerts</a></li>
+                <li><a href="/trends">Trends</a></li>
+                <li><a href="/comparison">Compare</a></li>
             </ul>
         </div>
     </nav>
@@ -39,8 +49,8 @@
                 <div style="font-family: var(--font-mono); font-size: 0.75rem; color: rgba(255,255,255,0.5);">
                     Last Update: <span id="lastUpdateTime">--:--:--</span>
                 </div>
-                <button class="btn btn-secondary" onclick="refreshData()">🔄 Refresh</button>
-                <button class="btn btn-primary" onclick="exportCSV()">📥 Export CSV</button>
+                <button class="btn btn-secondary" onclick="refreshData()">&#x1F504; Refresh</button>
+                <button class="btn btn-primary" onclick="exportCSV()">&#x1F4E5; Export CSV</button>
             </div>
         </div>
 
@@ -82,11 +92,11 @@
                 <table class="data-table" id="watchlistTable">
                     <thead>
                         <tr>
-                            <th onclick="sortTable(0)">Rank ▼</th>
-                            <th onclick="sortTable(1)">Asteroid ▼</th>
-                            <th onclick="sortTable(2)">Threat Score ▼</th>
-                            <th onclick="sortTable(3)">Status ▼</th>
-                            <th>Trend</th>
+                            <th onclick="sortTable(0)">Rank &#x25BC;</th>
+                            <th onclick="sortTable(1)">Asteroid &#x25BC;</th>
+                            <th onclick="sortTable(2)">Threat Score &#x25BC;</th>
+                            <th onclick="sortTable(3)">Status &#x25BC;</th>
+                            <th>Proximity (LD)</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
@@ -165,7 +175,7 @@
             console.log('[Watchlist] Received alert:', event.detail);
             // Show alert notification for critical threats
             if (event.detail.level === 'critical') {
-                wsClient.showNotification('⚠️ Critical Threat Alert', event.detail.message, 'error');
+                wsClient.showNotification('&#x26A0;&#xFE0F; Critical Threat Alert', event.detail.message, 'error');
             }
         });
 
@@ -203,9 +213,12 @@
                     statusText = 'LOW RISK';
                 }
                 
-                // Generate random trend sparkline (mock data)
-                const trendData = Array.from({length: 10}, () => Math.random() * 0.2 + item.threat_score - 0.1);
-                const sparkline = generateSparkline(trendData);
+                // Show MOID (Minimum Orbit Intersection Distance) as proximity indicator
+                const moidAU = item.moid;
+                const moidLD = (moidAU * 389).toFixed(2); // Convert AU to Lunar Distances (1 AU &asymp; 389 LD)
+                const proximityIndicator = moidAU < 0.05 ? 
+                    `<span style="color: var(--danger); font-weight: 600;">${moidLD} LD</span>` :
+                    `<span style="color: var(--success);">${moidLD} LD</span>`;
                 
                 return `
                     <tr data-threat="${item.threat_score}" data-id="${item.spkid}">
@@ -213,7 +226,7 @@
                         <td>
                             <div style="display: flex; flex-direction: column;">
                                 <a href="${item.url}" target="_blank" style="color: #00bfff; text-decoration: none; font-weight: 500;">
-                                    ${item.name} ↗
+                                    ${item.name} &#x2197;
                                 </a>
                                 <span style="font-family: var(--font-mono); font-size: 0.75rem; color: rgba(255,255,255,0.5); margin-top: 2px;">
                                     SPKID: ${item.spkid}
@@ -229,7 +242,7 @@
                             </div>
                         </td>
                         <td><span class="badge ${badgeClass}">${statusText}</span></td>
-                        <td>${sparkline}</td>
+                        <td style="font-family: var(--font-mono); text-align: center;">${proximityIndicator}</td>
                         <td>
                             <a href="${item.url}" target="_blank" class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.75rem; text-decoration: none;">
                                 NASA JPL
@@ -238,32 +251,6 @@
                     </tr>
                 `;
             }).join('');
-        }
-
-        // Generate simple SVG sparkline
-        function generateSparkline(data) {
-            const width = 80;
-            const height = 30;
-            const max = Math.max(...data);
-            const min = Math.min(...data);
-            const range = max - min || 1;
-            
-            const points = data.map((val, idx) => {
-                const x = (idx / (data.length - 1)) * width;
-                const y = height - ((val - min) / range) * height;
-                return `${x},${y}`;
-            }).join(' ');
-            
-            return `
-                <svg width="${width}" height="${height}" style="display: block;">
-                    <polyline 
-                        points="${points}" 
-                        fill="none" 
-                        stroke="#00bfff" 
-                        stroke-width="2"
-                    />
-                </svg>
-            `;
         }
 
         // Get badge color

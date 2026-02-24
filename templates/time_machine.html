@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -12,16 +12,23 @@
     <!-- Navigation -->
     <nav class="navbar">
         <div class="nav-content">
-            <div class="logo">🛰️ ATIS</div>
+            <div class="logo">&#x1F6F0;&#xFE0F; ATIS</div>
             <ul class="nav-links">
                 <li><a href="/">Home</a></li>
                 <li><a href="/galaxy">Galaxy</a></li>
                 <li><a href="/radar">Radar</a></li>
                 <li><a href="/watchlist">Watchlist</a></li>
                 <li><a href="/trajectory">Trajectory</a></li>
-                <li><a href="/orbital-simulator">Orbits</a></li>
-                <li><a href="/time-machine" class="active">Time Machine</a></li>
+                <li><a href="/timeline">Timeline</a></li>
                 <li><a href="/analytics">Analytics</a></li>
+                <li><a href="/multi-view">Multi-View</a></li>
+                <li><a href="/ml-dashboard">ML</a></li>
+                <li><a href="/orbital-mechanics">Orbital</a></li>
+                <li><a href="/impact-calculator">Impact Calc</a></li>
+                <li><a href="/nbody">N-Body</a></li>
+                <li><a href="/alerts">Alerts</a></li>
+                <li><a href="/trends">Trends</a></li>
+                <li><a href="/comparison">Compare</a></li>
             </ul>
         </div>
     </nav>
@@ -31,7 +38,27 @@
 
     <!-- Time Control Panel -->
     <div class="panel panel-top-left" style="z-index: 100; min-width: 400px;">
-        <h3 style="margin-bottom: 16px;">⏰ Time Machine</h3>
+        <h3 style="margin-bottom: 16px;">&#x23F0; Time Machine</h3>
+        
+        <!-- Asteroid Search -->
+        <div style="margin-bottom: 20px; padding: 12px; background: rgba(0,191,255,0.05); border-left: 2px solid var(--electric-blue); border-radius: 4px;">
+            <label style="display: block; margin-bottom: 8px; font-size: 0.875rem; color: rgba(255,255,255,0.8);">
+                &#x1F50D; Track Asteroid
+            </label>
+            <input 
+                type="text" 
+                id="asteroidSearch" 
+                placeholder="Enter asteroid name or ID (e.g., Eros, 433)"
+                style="width: 100%; padding: 8px; background: rgba(0,191,255,0.05); border: 1px solid var(--border-gray); border-radius: 4px; color: white; font-family: var(--font-mono); font-size: 0.875rem;"
+                onkeyup="searchAsteroid(event)"
+            >
+            <div id="searchResults" style="max-height: 150px; overflow-y: auto; margin-top: 8px; display: none;"></div>
+            <div id="selectedAsteroid" style="margin-top: 8px; padding: 8px; background: rgba(0,191,255,0.1); border-radius: 4px; display: none;">
+                <div style="font-size: 0.75rem; color: var(--electric-blue); margin-bottom: 4px;">Tracking:</div>
+                <div id="trackedName" style="font-weight: 600;"></div>
+                <button onclick="clearTracking()" style="margin-top: 6px; padding: 4px 12px; background: rgba(255,0,0,0.2); border: 1px solid #ff0000; border-radius: 3px; color: white; cursor: pointer; font-size: 0.75rem;">Clear</button>
+            </div>
+        </div>
         
         <div style="margin-bottom: 20px; padding: 12px; background: rgba(0,191,255,0.05); border-left: 2px solid var(--electric-blue); border-radius: 4px;">
             <div style="font-size: 0.875rem; color: rgba(255,255,255,0.7); margin-bottom: 8px;">Current Simulation Time</div>
@@ -69,7 +96,7 @@
 
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
             <button class="btn btn-primary" onclick="resetTime()">Reset to Now</button>
-            <button class="btn btn-primary" id="playButton" onclick="togglePlayback()">▶ Play</button>
+            <button class="btn btn-primary" id="playButton" onclick="togglePlayback()">&#x25B6; Play</button>
         </div>
 
         <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border-gray);">
@@ -88,7 +115,7 @@
 
     <!-- Statistics Panel -->
     <div class="panel panel-top-right" style="z-index: 100;">
-        <h3 style="margin-bottom: 16px;">📊 System Snapshot</h3>
+        <h3 style="margin-bottom: 16px;">&#x1F4CA; System Snapshot</h3>
         <div id="statsPanel">
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 0.875rem;">
                 <div style="padding: 12px; background: rgba(0,191,255,0.05); border-radius: 4px;">
@@ -127,5 +154,93 @@
     </div>
 
     <script src="/static/js/time_machine.js"></script>
+
+    <!-- Historical Close Approaches Panel (bottom overlay) -->
+    <div id="cadPanel" style="position:fixed;bottom:0;left:0;right:0;z-index:200;background:rgba(4,4,16,.95);border-top:1px solid rgba(0,212,255,.35);max-height:0;overflow:hidden;transition:max-height .4s ease;font-family:'Roboto Mono',monospace">
+        <div style="padding:1rem 1.5rem">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+                <h3 style="color:#00d4ff;margin:0">&#x1F30C; Historical Close Approaches (1900&ndash;2100) &mdash; NASA CAD Database</h3>
+                <div style="display:flex;gap:1rem;align-items:center">
+                    <select id="cadDistMax" style="padding:.4rem .7rem;background:#0a0a1a;border:1px solid rgba(0,212,255,.3);color:#fff;border-radius:4px;font-family:inherit">
+                        <option value="0.02">&le; 0.02 AU (Very Close)</option>
+                        <option value="0.05" selected>&le; 0.05 AU (PHA threshold)</option>
+                        <option value="0.10">&le; 0.10 AU (Near)</option>
+                        <option value="0.20">&le; 0.20 AU (Extended)</option>
+                    </select>
+                    <button onclick="loadCADData()" style="padding:.4rem 1rem;background:#00d4ff;color:#000;border:none;border-radius:4px;cursor:pointer;font-weight:700">Load</button>
+                    <button onclick="toggleCADPanel()" style="padding:.4rem 1rem;background:rgba(255,255,255,.1);color:#fff;border:1px solid rgba(255,255,255,.2);border-radius:4px;cursor:pointer">&times; Close</button>
+                </div>
+            </div>
+            <div id="cadContent" style="display:grid;grid-template-columns:1fr 2fr;gap:1.5rem">
+                <div id="cadTable" style="max-height:260px;overflow-y:auto;font-size:.78rem"></div>
+                <div id="cadChart" style="height:280px"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toggle button -->
+    <button onclick="toggleCADPanel()" style="position:fixed;bottom:12px;right:12px;z-index:300;padding:.6rem 1.2rem;background:rgba(0,212,255,.2);border:1px solid #00d4ff;color:#00d4ff;border-radius:20px;cursor:pointer;font-family:'Orbitron',monospace;font-size:.75rem">
+        &#x1F4C5; Historical Approaches
+    </button>
+
+    <script src="https://cdn.plot.ly/plotly-2.26.0.min.js"></script>
+    <script>
+    let cadOpen = false;
+    function toggleCADPanel(){
+        cadOpen = !cadOpen;
+        document.getElementById("cadPanel").style.maxHeight = cadOpen ? "340px" : "0";
+        if(cadOpen && !document.getElementById("cadTable").innerHTML) loadCADData();
+    }
+    async function loadCADData(){
+        const dm = document.getElementById("cadDistMax").value;
+        document.getElementById("cadTable").innerHTML = "<p style='color:rgba(255,255,255,.5)'>Loading from NASA JPL&hellip;</p>";
+        try {
+            const r = await fetch(`/api/cad-history?dist_max=${dm}&limit=200`);
+            const d = await r.json();
+            const data = d.data||[];
+            if(!data.length){ document.getElementById("cadTable").innerHTML="<p style='color:#ffa500'>No data returned</p>"; return; }
+            // Table
+            document.getElementById("cadTable").innerHTML =
+                `<table style="width:100%;border-collapse:collapse">
+                <thead><tr style="color:#00d4ff;border-bottom:1px solid rgba(0,212,255,.3)">
+                    <th style="text-align:left;padding:4px">Object</th>
+                    <th style="text-align:right;padding:4px">Date</th>
+                    <th style="text-align:right;padding:4px">Dist (AU)</th>
+                    <th style="text-align:right;padding:4px">LD</th>
+                </tr></thead><tbody>` +
+                data.slice(0,60).map(row=>{
+                    const c=row.distance_au<0.01?"#ff3333":row.distance_au<0.03?"#ffa500":"#00ff7f";
+                    return `<tr style="border-bottom:1px solid rgba(255,255,255,.05)">
+                        <td style="padding:3px 4px;color:rgba(255,255,255,.8);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${row.name}</td>
+                        <td style="padding:3px 4px;text-align:right;color:rgba(255,255,255,.6)">${(row.date||"").substring(0,10)}</td>
+                        <td style="padding:3px 4px;text-align:right;color:${c}">${row.distance_au.toFixed(5)}</td>
+                        <td style="padding:3px 4px;text-align:right;color:rgba(255,255,255,.6)">${row.distance_ld.toFixed(1)}</td>
+                    </tr>`;
+                }).join("") + "</tbody></table>";
+            // Chart - distances over time
+            const withDate = data.filter(r=>r.date).sort((a,b)=>a.date.localeCompare(b.date));
+            const clrs = withDate.map(r=>r.distance_au<0.01?"#ff3333":r.distance_au<0.03?"#ffa500":"#00d4ff");
+            Plotly.newPlot("cadChart",[
+                {x:withDate.map(r=>r.date.substring(0,10)),
+                 y:withDate.map(r=>r.distance_au),
+                 mode:"markers",type:"scatter",
+                 marker:{color:clrs,size:6,opacity:.8},
+                 text:withDate.map(r=>`${r.name}<br>${r.date.substring(0,10)}<br>${r.distance_au.toFixed(5)} AU<br>${r.distance_ld.toFixed(1)} LD`),
+                 hoverinfo:"text",name:"Close Approach"},
+                {x:withDate.map(r=>r.date.substring(0,10)),
+                 y:Array(withDate.length).fill(0.05),mode:"lines",
+                 line:{color:"rgba(255,100,0,.5)",dash:"dash",width:1},name:"PHA 0.05 AU"},
+                {x:withDate.map(r=>r.date.substring(0,10)),
+                 y:Array(withDate.length).fill(0.01),mode:"lines",
+                 line:{color:"rgba(255,0,0,.4)",dash:"dot",width:1},name:"0.01 AU"}
+            ],{paper_bgcolor:"rgba(0,0,0,0)",plot_bgcolor:"rgba(10,10,20,.9)",
+               font:{family:"Roboto Mono",color:"#00d4ff",size:10},
+               xaxis:{gridcolor:"rgba(0,212,255,.08)",color:"#fff",title:"Date"},
+               yaxis:{gridcolor:"rgba(0,212,255,.08)",color:"#fff",title:"Distance (AU)"},
+               margin:{l:55,r:10,t:15,b:45},showlegend:true,
+               legend:{font:{color:"#fff"},bgcolor:"rgba(0,0,0,.5)"}},{responsive:true,displayModeBar:false});
+        } catch(e){ document.getElementById("cadTable").innerHTML=`<p style='color:#ff3333'>Error: ${e.message}</p>`; }
+    }
+    </script>
 </body>
 </html>

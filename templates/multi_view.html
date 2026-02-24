@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -10,17 +10,25 @@
 </head>
 <body>
     <nav class="navbar">
-        <a href="/" class="nav-logo">ATIS</a>
-        <div class="nav-links">
-            <a href="/">Home</a>
-            <a href="/galaxy">Galaxy</a>
-            <a href="/radar">Radar</a>
-            <a href="/watchlist">Watchlist</a>
-            <a href="/trajectory">Trajectory</a>
-            <a href="/orbital-simulator">Orbits</a>
-            <a href="/time-machine">Time Machine</a>
-            <a href="/analytics">Analytics</a>
-            <a href="/multi-view" class="active">Multi-View</a>
+        <div class="nav-content">
+            <div class="logo">&#x1F6F0;&#xFE0F; ATIS</div>
+            <ul class="nav-links">
+                <li><a href="/">Home</a></li>
+                <li><a href="/galaxy">Galaxy</a></li>
+                <li><a href="/radar">Radar</a></li>
+                <li><a href="/watchlist">Watchlist</a></li>
+                <li><a href="/trajectory">Trajectory</a></li>
+                <li><a href="/timeline">Timeline</a></li>
+                <li><a href="/analytics">Analytics</a></li>
+                <li><a href="/multi-view" class="active">Multi-View</a></li>
+                <li><a href="/ml-dashboard">ML</a></li>
+                <li><a href="/orbital-mechanics">Orbital</a></li>
+                <li><a href="/impact-calculator">Impact Calc</a></li>
+                <li><a href="/nbody">N-Body</a></li>
+                <li><a href="/alerts">Alerts</a></li>
+                <li><a href="/trends">Trends</a></li>
+                <li><a href="/comparison">Compare</a></li>
+            </ul>
         </div>
     </nav>
 
@@ -69,7 +77,7 @@
                 <div class="view-header">
                     <h3>3D Orbital Path</h3>
                     <div class="view-controls">
-                        <button class="view-toggle" data-view="orbit3d">↻</button>
+                        <button class="view-toggle" data-view="orbit3d">&#x21BB;</button>
                     </div>
                 </div>
                 <canvas id="canvas1"></canvas>
@@ -80,7 +88,7 @@
                 <div class="view-header">
                     <h3>Close Approach Timeline</h3>
                     <div class="view-controls">
-                        <button class="view-toggle" data-view="timeline">↻</button>
+                        <button class="view-toggle" data-view="timeline">&#x21BB;</button>
                     </div>
                 </div>
                 <div id="chart1"></div>
@@ -91,7 +99,7 @@
                 <div class="view-header">
                     <h3>Orbital Elements Radar</h3>
                     <div class="view-controls">
-                        <button class="view-toggle" data-view="radar">↻</button>
+                        <button class="view-toggle" data-view="radar">&#x21BB;</button>
                     </div>
                 </div>
                 <div id="chart2"></div>
@@ -102,7 +110,7 @@
                 <div class="view-header">
                     <h3>Impact Assessment</h3>
                     <div class="view-controls">
-                        <button class="view-toggle" data-view="impact">↻</button>
+                        <button class="view-toggle" data-view="impact">&#x21BB;</button>
                     </div>
                 </div>
                 <div id="chart3"></div>

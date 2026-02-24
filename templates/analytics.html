@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -9,16 +9,25 @@
 </head>
 <body>
     <nav class="navbar">
-        <a href="/" class="nav-logo">ATIS</a>
-        <div class="nav-links">
-            <a href="/">Home</a>
-            <a href="/galaxy">Galaxy</a>
-            <a href="/radar">Radar</a>
-            <a href="/watchlist">Watchlist</a>
-            <a href="/trajectory">Trajectory</a>
-            <a href="/orbital-simulator">Orbits</a>
-            <a href="/time-machine">Time Machine</a>
-            <a href="/analytics" class="active">Analytics</a>
+        <div class="nav-content">
+            <div class="logo">&#x1F6F0;&#xFE0F; ATIS</div>
+            <ul class="nav-links">
+                <li><a href="/">Home</a></li>
+                <li><a href="/galaxy">Galaxy</a></li>
+                <li><a href="/radar">Radar</a></li>
+                <li><a href="/watchlist">Watchlist</a></li>
+                <li><a href="/trajectory">Trajectory</a></li>
+                <li><a href="/timeline">Timeline</a></li>
+                <li><a href="/analytics" class="active">Analytics</a></li>
+                <li><a href="/multi-view">Multi-View</a></li>
+                <li><a href="/ml-dashboard">ML</a></li>
+                <li><a href="/orbital-mechanics">Orbital</a></li>
+                <li><a href="/impact-calculator">Impact Calc</a></li>
+                <li><a href="/nbody">N-Body</a></li>
+                <li><a href="/alerts">Alerts</a></li>
+                <li><a href="/trends">Trends</a></li>
+                <li><a href="/comparison">Compare</a></li>
+            </ul>
         </div>
     </nav>
 
@@ -31,32 +40,32 @@
         <!-- System Statistics -->
         <div class="analytics-grid">
             <div class="stat-card">
-                <div class="stat-icon">🌍</div>
+                <div class="stat-icon">&#x1F30D;</div>
                 <div class="stat-value" id="totalAsteroids">-</div>
                 <div class="stat-label">Total NEOs</div>
             </div>
             <div class="stat-card">
-                <div class="stat-icon">⚠️</div>
+                <div class="stat-icon">&#x26A0;&#xFE0F;</div>
                 <div class="stat-value" id="phaCount">-</div>
                 <div class="stat-label">Potentially Hazardous</div>
             </div>
             <div class="stat-card">
-                <div class="stat-icon">🔴</div>
+                <div class="stat-icon">&#x1F534;</div>
                 <div class="stat-value" id="highThreatCount">-</div>
                 <div class="stat-label">High Threat (>0.7)</div>
             </div>
             <div class="stat-card">
-                <div class="stat-icon">🟡</div>
+                <div class="stat-icon">&#x1F7E1;</div>
                 <div class="stat-value" id="mediumThreatCount">-</div>
                 <div class="stat-label">Medium Threat (0.4-0.7)</div>
             </div>
             <div class="stat-card">
-                <div class="stat-icon">🟢</div>
+                <div class="stat-icon">&#x1F7E2;</div>
                 <div class="stat-value" id="lowThreatCount">-</div>
                 <div class="stat-label">Low Threat (<0.4)</div>
             </div>
             <div class="stat-card">
-                <div class="stat-icon">📊</div>
+                <div class="stat-icon">&#x1F4CA;</div>
                 <div class="stat-value" id="avgThreat">-</div>
                 <div class="stat-label">Average Threat Score</div>
             </div>
@@ -104,33 +113,33 @@
         <div class="performance-grid">
             <div class="metric-card">
                 <div class="metric-label">Model Accuracy</div>
-                <div class="metric-value">94.3%</div>
+                <div class="metric-value" id="perfAccuracy">--</div>
                 <div class="metric-bar">
-                    <div class="metric-bar-fill" style="width: 94.3%;"></div>
+                    <div class="metric-bar-fill" id="barAccuracy" style="width:0%;"></div>
                 </div>
             </div>
 
             <div class="metric-card">
                 <div class="metric-label">Precision</div>
-                <div class="metric-value">91.7%</div>
+                <div class="metric-value" id="perfPrecision">--</div>
                 <div class="metric-bar">
-                    <div class="metric-bar-fill" style="width: 91.7%;"></div>
+                    <div class="metric-bar-fill" id="barPrecision" style="width:0%;"></div>
                 </div>
             </div>
 
             <div class="metric-card">
                 <div class="metric-label">Recall</div>
-                <div class="metric-value">89.2%</div>
+                <div class="metric-value" id="perfRecall">--</div>
                 <div class="metric-bar">
-                    <div class="metric-bar-fill" style="width: 89.2%;"></div>
+                    <div class="metric-bar-fill" id="barRecall" style="width:0%;"></div>
                 </div>
             </div>
 
             <div class="metric-card">
                 <div class="metric-label">F1 Score</div>
-                <div class="metric-value">90.4%</div>
+                <div class="metric-value" id="perfF1">--</div>
                 <div class="metric-bar">
-                    <div class="metric-bar-fill" style="width: 90.4%;"></div>
+                    <div class="metric-bar-fill" id="barF1" style="width:0%;"></div>
                 </div>
             </div>
         </div>
@@ -189,5 +198,25 @@
     </div>
 
     <script src="/static/js/analytics.js"></script>
+    <script>
+    // Load real ML performance metrics
+    fetch('/api/ml-performance').then(r=>r.json()).then(d=>{
+        const m = d.metrics || {};
+        const fields = [
+            ['perfAccuracy','barAccuracy','accuracy'],
+            ['perfPrecision','barPrecision','precision'],
+            ['perfRecall','barRecall','recall'],
+            ['perfF1','barF1','f1_score']
+        ];
+        fields.forEach(([eId,bId,key])=>{
+            const v = m[key] || m[key.replace('_score','_score')] || 0;
+            const pct = (v*100).toFixed(1);
+            const el = document.getElementById(eId);
+            const bar = document.getElementById(bId);
+            if(el) el.textContent = pct+'%';
+            if(bar) bar.style.width = pct+'%';
+        });
+    }).catch(()=>{});
+    </script>
 </body>
 </html>
