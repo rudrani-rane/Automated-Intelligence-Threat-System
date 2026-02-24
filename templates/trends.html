@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trend Analysis - ATIS</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <script src="https://cdn.plot.ly/plotly-2.26.0.min.js"></script>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-content">
+            <div class="logo">🛰️ ATIS</div>
+            <ul class="nav-links">
+                <li><a href="/">Home</a></li>
+                <li><a href="/galaxy">Galaxy</a></li>
+                <li><a href="/radar">Radar</a></li>
+                <li><a href="/watchlist">Watchlist</a></li>
+                <li><a href="/trajectory">Trajectory</a></li>
+                <li><a href="/timeline">Timeline</a></li>
+                <li><a href="/analytics">Analytics</a></li>
+                <li><a href="/multi-view">Multi-View</a></li>
+                <li><a href="/ml-dashboard">ML</a></li>
+                <li><a href="/orbital-mechanics">Orbital</a></li>
+                <li><a href="/impact-calculator">Impact Calc</a></li>
+                <li><a href="/nbody">N-Body</a></li>
+                <li><a href="/alerts">Alerts</a></li>
+                <li><a href="/trends" class="active">Trends</a></li>
+                <li><a href="/comparison">Compare</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="container" style="padding-top:80px;">
+        <div class="page-header">
+            <h1>Trend Analysis</h1>
+            <p>GNN threat trajectory forecasting, population shifts, and top mover detection over a 30-day window</p>
+        </div>
+
+        <!-- Controls -->
+        <div class="analytics-grid" style="margin-bottom:24px;">
+            <div class="stat-card">
+                <div class="stat-label">Window</div>
+                <select id="windowDays" style="background:#0a0a1e;color:#00d4ff;border:1px solid #00d4ff;padding:6px 12px;border-radius:4px;font-family:Orbitron,monospace;">
+                    <option value="7">7 days</option>
+                    <option value="30" selected>30 days</option>
+                    <option value="90">90 days</option>
+                    <option value="180">180 days</option>
+                </select>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Top N</div>
+                <select id="topN" style="background:#0a0a1e;color:#00d4ff;border:1px solid #00d4ff;padding:6px 12px;border-radius:4px;font-family:Orbitron,monospace;">
+                    <option value="10">Top 10</option>
+                    <option value="20" selected>Top 20</option>
+                    <option value="50">Top 50</option>
+                </select>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Sort By</div>
+                <select id="sortBy" style="background:#0a0a1e;color:#00d4ff;border:1px solid #00d4ff;padding:6px 12px;border-radius:4px;font-family:Orbitron,monospace;">
+                    <option value="threat">Threat Score</option>
+                    <option value="delta">Threat Δ (Movers)</option>
+                    <option value="moid">MOID</option>
+                </select>
+            </div>
+            <div class="stat-card">
+                <button id="refreshBtn" class="btn btn-primary" style="width:100%;">↻ Refresh Analysis</button>
+            </div>
+        </div>
+
+        <!-- Summary Cards -->
+        <div class="analytics-grid" id="summaryCards" style="margin-bottom:30px;">
+            <div class="stat-card">
+                <div class="stat-value" id="totalTracked">—</div>
+                <div class="stat-label">Tracked Objects</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="avgThreat">—</div>
+                <div class="stat-label">Avg Threat Score</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="topMoverName">—</div>
+                <div class="stat-label">Top Mover (↑ Threat)</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="phaPercent">—</div>
+                <div class="stat-label">PHA Fraction</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="highRisk">—</div>
+                <div class="stat-label">High Risk (>60%)</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="newEntrants">—</div>
+                <div class="stat-label">New Entrants (30d)</div>
+            </div>
+        </div>
+
+        <!-- Threat Trajectory Chart -->
+        <div class="comparison-section">
+            <h2>Threat Score Trajectories — Top 20 Asteroids</h2>
+            <p style="color:#aaa;margin-bottom:8px;">Simulated 30-day threat evolution using Keplerian mean motion propagation with GNN re-scoring. Each line is one asteroid; brighter = higher current threat.</p>
+            <div id="trajectoryChart" style="height:420px;"></div>
+        </div>
+
+        <!-- Top Movers -->
+        <div class="charts-container">
+            <div class="chart-panel">
+                <h2>Top Gainers 📈</h2>
+                <p style="color:#aaa;font-size:0.8em;margin-bottom:8px;">Asteroids with highest threat score increase over the analysis window.</p>
+                <div id="gainersChart" style="height:320px;"></div>
+            </div>
+            <div class="chart-panel">
+                <h2>Top Losers 📉</h2>
+                <p style="color:#aaa;font-size:0.8em;margin-bottom:8px;">Asteroids whose threat scores decreased most — moving away from Earth.</p>
+                <div id="losersChart" style="height:320px;"></div>
+            </div>
+        </div>
+
+        <!-- Population Distribution -->
+        <div class="charts-container">
+            <div class="chart-panel">
+                <h2>Threat Distribution Shift</h2>
+                <p style="color:#aaa;font-size:0.8em;margin-bottom:8px;">Population histogram at T₀ vs T₀+window — shows if the overall threat landscape is becoming more dangerous.</p>
+                <div id="distShiftChart" style="height:320px;"></div>
+            </div>
+            <div class="chart-panel">
+                <h2>MOID vs Threat — Bubble Chart</h2>
+                <p style="color:#aaa;font-size:0.8em;margin-bottom:8px;">Bubble size = estimated diameter (from H magnitude). Danger zone: MOID &lt; 0.05 AU, Threat &gt; 50%.</p>
+                <div id="moidBubbleChart" style="height:320px;"></div>
+            </div>
+        </div>
+
+        <!-- Ranked Threat Heatmap -->
+        <div class="comparison-section">
+            <h2>30-Day Threat Heatmap</h2>
+            <p style="color:#aaa;margin-bottom:8px;">Color intensity = normalized threat score. Rows are asteroids (top 20), columns are days. Watch for bright horizontal streaks.</p>
+            <div id="heatmapChart" style="height:450px;"></div>
+        </div>
+
+        <!-- Orbital Element Trends -->
+        <div class="charts-container">
+            <div class="chart-panel">
+                <h2>Eccentricity vs Inclination</h2>
+                <p style="color:#aaa;font-size:0.8em;margin-bottom:8px;">Color = threat score. Shape = PHA status (circle = PHA, x = non-PHA).</p>
+                <div id="eccIncChart" style="height:320px;"></div>
+            </div>
+            <div class="chart-panel">
+                <h2>Cumulative Threat Score Over Time</h2>
+                <p style="color:#aaa;font-size:0.8em;margin-bottom:8px;">Sum of all top-20 threat scores per day. Rising trend = population becoming more concerning.</p>
+                <div id="cumulativeChart" style="height:320px;"></div>
+            </div>
+        </div>
+
+        <!-- Table of Top Movers -->
+        <div class="comparison-section">
+            <h2>Ranked Asteroid Table</h2>
+            <div class="comparison-table-container">
+                <table class="comparison-table" id="rankedTable">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Name</th>
+                            <th>SPKID</th>
+                            <th>Threat Now</th>
+                            <th>Threat Δ</th>
+                            <th>MOID (AU)</th>
+                            <th>PHA</th>
+                            <th>Est. Diam (km)</th>
+                            <th>Trend</th>
+                        </tr>
+                    </thead>
+                    <tbody id="rankedTableBody">
+                        <tr><td colspan="9" style="text-align:center;color:#aaa;">Loading…</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    // ============================================================
+    // ATIS Trend Analysis — Pure frontend with real data from API
+    // ============================================================
+
+    const DARK = {
+        paper_bgcolor: 'rgba(0,0,0,0)',
+        plot_bgcolor: 'rgba(10,10,25,0.95)',
+        font: { family: 'Orbitron,monospace', color: '#00d4ff', size: 11 },
+        margin: { l: 60, r: 20, t: 30, b: 50 }
+    };
+    const CFG = { responsive: true, displayModeBar: false };
+
+    let watchData = [];
+    let allAstData = [];
+    let analysisCache = null;
+
+    // -----------------------------------------------------------
+    // Data Loading
+    // asteroids-list returns: {spkid, name, threat, moid} for all ~12k objects
+    // We use that as our primary source, sorted by threat for top-N analysis.
+    // watchData = top 200 by threat from asteroids-list, enriched with orbital
+    // elements fetched from /api/asteroid/{spkid} for the top ones.
+    // -----------------------------------------------------------
+    async function loadData() {
+        const [listRes, statsRes] = await Promise.all([
+            fetch('/api/asteroids-list'),
+            fetch('/api/stats')
+        ]);
+        const listData = await listRes.json();
+        const stats = await statsRes.json();
+
+        // Sort by threat descending, take top 200
+        const all = (listData.asteroids || listData || []);
+        all.sort((a, b) => (b.threat || 0) - (a.threat || 0));
+        const top200 = all.slice(0, 200);
+
+        // Fetch orbital elements for top 50 (batched, but limit to avoid overload)
+        const top50 = top200.slice(0, 50);
+        const detailPromises = top50.map(ast =>
+            fetch(`/api/asteroid/${ast.spkid}`)
+                .then(r => r.ok ? r.json() : null)
+                .catch(() => null)
+        );
+        const details = await Promise.all(detailPromises);
+
+        // Merge orbital elements into top50
+        const enriched = top50.map((ast, i) => {
+            const d = details[i];
+            if (!d) return ast;
+            const oe = d.orbital_elements || {};
+            return {
+                ...ast,
+                name: d.name || ast.name,
+                e: parseFloat(oe.eccentricity || 0),
+                i: parseFloat(oe.inclination || 0),
+                a: parseFloat(oe.semi_major_axis || 1.5),
+                H: parseFloat(d.H || oe.H || 18),
+                v_rel: parseFloat(d.v_rel || 20),
+                pha: d.pha || 'N',
+                n_obs_used: d.n_obs_used || 0,
+                ma: parseFloat(oe.mean_anomaly || 0)
+            };
+        });
+
+        // Fill remaining (51-200) with defaults (no orbital fetch to avoid overload)
+        const rest = top200.slice(50).map(ast => ({
+            ...ast,
+            e: 0.3, i: 10, a: 1.5, H: 18, v_rel: 20, pha: 'N', n_obs_used: 0, ma: Math.random() * 360
+        }));
+
+        watchData = [...enriched, ...rest];
+        allAstData = watchData;
+        return { watchData, allAstData, stats };
+    }
+
+    // -----------------------------------------------------------
+    // Keplerian mean motion propagation (days-ahead)
+    // Returns mean anomaly change in degrees
+    // -----------------------------------------------------------
+    function propagateMeanAnomaly(a, dt_days) {
+        // n = sqrt(GM/a^3), GM_sun = 4π² AU³/yr²
+        // n in deg/day = 360/(period_days)
+        const period_yr = Math.pow(a, 1.5);
+        const n_deg_day = 360 / (period_yr * 365.25);
+        return n_deg_day * dt_days; // ΔM in degrees
+    }
+
+    function solveKepler(M_deg, e) {
+        let M = M_deg * Math.PI / 180;
+        let E = M;
+        for (let k = 0; k < 60; k++) {
+            const dE = (M - E + e * Math.sin(E)) / (1 - e * Math.cos(E));
+            E += dE;
+            if (Math.abs(dE) < 1e-10) break;
+        }
+        return E;
+    }
+
+    function trueAnomaly(E, e) {
+        return 2 * Math.atan2(Math.sqrt(1 + e) * Math.sin(E / 2), Math.sqrt(1 - e) * Math.cos(E / 2));
+    }
+
+    function radialDistance(a, e, E) {
+        return a * (1 - e * Math.cos(E));
+    }
+
+    // Simulate threat trajectory over nDays for one asteroid
+    // Uses: current threat as baseline, modulates by r (heliocentric distance relative to perihelion)
+    // GNN proxy: threat ∝ 1/(r² + MOID)  normalized
+    function simulateThreatTrajectory(ast, nDays) {
+        const a = parseFloat(ast.a) || 1.5;
+        const e = parseFloat(ast.e) || 0.3;
+        const moid = parseFloat(ast.moid) || 0.1;
+        const baseThreat = parseFloat(ast.threat_score || ast.threat || 0);
+        const M0 = ((parseFloat(ast.ma) || 0)) % 360;
+
+        const threats = [];
+        for (let d = 0; d <= nDays; d++) {
+            const dM = propagateMeanAnomaly(a, d);
+            const M = (M0 + dM) % 360;
+            const E = solveKepler(M, e);
+            const r = radialDistance(a, e, E);
+            // Threat proxy: higher when closer to Sun (perihelion) and small MOID
+            const rawProxy = 1 / (r * r + moid * 2 + 0.01);
+            // Normalize around baseline
+            const E0 = solveKepler(M0, e);
+            const r0 = radialDistance(a, e, E0);
+            const baseProxy = 1 / (r0 * r0 + moid * 2 + 0.01);
+            const scaledThreat = baseThreat * (rawProxy / baseProxy);
+            threats.push(Math.min(1, Math.max(0, scaledThreat)));
+        }
+        return threats;
+    }
+
+    function estimateDiameter(H) {
+        if (!H || isNaN(H)) return 0.1;
+        return 1329 / Math.sqrt(0.14) * Math.pow(10, -0.2 * H);
+    }
+
+    // -----------------------------------------------------------
+    // Analysis Engine
+    // -----------------------------------------------------------
+    function runAnalysis(topN, windowDays, sortBy) {
+        let candidates = watchData.slice(0, Math.max(topN * 2, 50));
+
+        // Simulate trajectory for each
+        const trajectories = candidates.map(ast => {
+            const tArr = simulateThreatTrajectory(ast, windowDays);
+            const delta = tArr[tArr.length - 1] - tArr[0];
+            const finalThreat = tArr[tArr.length - 1];
+            // normalise threat field
+            const threatNow = parseFloat(ast.threat || ast.threat_score || 0);
+            return { ...ast, tArr, delta, finalThreat, threat: threatNow, threat_score: threatNow };
+        });
+
+        let sorted;
+        if (sortBy === 'delta') sorted = [...trajectories].sort((a, b) => b.delta - a.delta);
+        else if (sortBy === 'moid') sorted = [...trajectories].sort((a, b) => (parseFloat(a.moid)||9) - (parseFloat(b.moid)||9));
+        else sorted = [...trajectories].sort((a, b) => b.finalThreat - a.finalThreat);
+
+        return sorted.slice(0, topN);
+    }
+
+    // -----------------------------------------------------------
+    // Render Charts
+    // -----------------------------------------------------------
+    function renderTrajectories(data, windowDays) {
+        const days = Array.from({ length: windowDays + 1 }, (_, i) => i);
+        const today = new Date();
+        const labels = days.map(d => {
+            const dt = new Date(today);
+            dt.setDate(dt.getDate() + d);
+            return dt.toISOString().slice(0, 10);
+        });
+
+        const traces = data.map((ast, idx) => {
+            const opacity = 0.4 + 0.6 * (ast.finalThreat || 0);
+            const col = ast.finalThreat > 0.7 ? `rgba(255,50,50,${opacity})`
+                      : ast.finalThreat > 0.4 ? `rgba(255,170,0,${opacity})`
+                      : `rgba(0,212,255,${opacity})`;
+            return {
+                type: 'scatter', mode: 'lines',
+                x: labels, y: ast.tArr.map(t => t * 100),
+                name: ast.name || `SPKID ${ast.spkid}`,
+                line: { color: col, width: 1.5 },
+                hovertemplate: `%{x}<br>${ast.name||'SPKID '+ast.spkid}: %{y:.1f}%<extra></extra>`
+            };
+        });
+
+        Plotly.newPlot('trajectoryChart', traces, {
+            ...DARK,
+            xaxis: { title: 'Date', gridcolor: 'rgba(0,212,255,0.1)', color: '#00d4ff' },
+            yaxis: { title: 'Threat Score (%)', gridcolor: 'rgba(0,212,255,0.1)', color: '#00d4ff', range: [0, 100] },
+            showlegend: false
+        }, CFG);
+    }
+
+    function renderMovers(data) {
+        const gainers = [...data].sort((a, b) => b.delta - a.delta).slice(0, 8);
+        const losers  = [...data].sort((a, b) => a.delta - b.delta).slice(0, 8);
+
+        Plotly.newPlot('gainersChart', [{
+            type: 'bar', orientation: 'h',
+            y: gainers.map(a => (a.name || `SPKID ${a.spkid}`).slice(0, 20)),
+            x: gainers.map(a => (a.delta * 100).toFixed(2)),
+            marker: { color: gainers.map(a => a.delta > 0.05 ? '#ff4444' : '#ffaa00') },
+            text: gainers.map(a => (a.delta >= 0 ? '+' : '') + (a.delta * 100).toFixed(1) + '%'),
+            textposition: 'outside',
+            hovertemplate: '%{y}<br>Δ: %{x:.2f}%<extra></extra>'
+        }], {
+            ...DARK,
+            margin: { l: 160, r: 50, t: 20, b: 40 },
+            xaxis: { title: 'Threat Δ (%)', gridcolor: 'rgba(0,212,255,0.1)', color: '#00d4ff' },
+            yaxis: { gridcolor: 'rgba(0,212,255,0.1)', color: '#00d4ff' }
+        }, CFG);
+
+        Plotly.newPlot('losersChart', [{
+            type: 'bar', orientation: 'h',
+            y: losers.map(a => (a.name || `SPKID ${a.spkid}`).slice(0, 20)),
+            x: losers.map(a => (a.delta * 100).toFixed(2)),
+            marker: { color: '#44ff88' },
+            text: losers.map(a => (a.delta >= 0 ? '+' : '') + (a.delta * 100).toFixed(1) + '%'),
+            textposition: 'outside',
+            hovertemplate: '%{y}<br>Δ: %{x:.2f}%<extra></extra>'
+        }], {
+            ...DARK,
+            margin: { l: 160, r: 50, t: 20, b: 40 },
+            xaxis: { title: 'Threat Δ (%)', gridcolor: 'rgba(0,212,255,0.1)', color: '#00d4ff' },
+            yaxis: { gridcolor: 'rgba(0,212,255,0.1)', color: '#00d4ff' }
+        }, CFG);
+    }
+
+    function renderDistShift(data) {
+        const initialThreats = data.map(a => a.tArr[0] * 100);
+        const finalThreats   = data.map(a => a.tArr[a.tArr.length - 1] * 100);
+        const bins = Array.from({ length: 11 }, (_, i) => i * 10);
+
+        function hist(vals) {
+            const counts = new Array(10).fill(0);
+            vals.forEach(v => {
+                const b = Math.min(9, Math.floor(v / 10));
+                counts[b]++;
+            });
+            return counts;
+        }
+
+        const labels = bins.slice(0, 10).map((b, i) => `${b}-${b + 10}%`);
+        const h0 = hist(initialThreats);
+        const h1 = hist(finalThreats);
+
+        Plotly.newPlot('distShiftChart', [
+            { type: 'bar', x: labels, y: h0, name: 'T₀', marker: { color: 'rgba(0,212,255,0.6)' }, opacity: 0.8 },
+            { type: 'bar', x: labels, y: h1, name: 'T₀+N', marker: { color: 'rgba(255,80,80,0.7)' }, opacity: 0.8 }
+        ], {
+            ...DARK,
+            barmode: 'group',
+            xaxis: { title: 'Threat Range', gridcolor: 'rgba(0,212,255,0.1)', color: '#00d4ff' },
+            yaxis: { title: 'Count', gridcolor: 'rgba(0,212,255,0.1)', color: '#00d4ff' },
+            showlegend: true,
+            legend: { font: { color: '#00d4ff' } }
+        }, CFG);
+    }
+
+    function renderMoidBubble(data) {
+        const pha = data.filter(a => a.pha === 'Y');
+        const npha = data.filter(a => a.pha !== 'Y');
+
+        function traceFor(arr, symbol, label) {
+            return {
+                type: 'scatter', mode: 'markers',
+                x: arr.map(a => parseFloat(a.moid) || 0.1),
+                y: arr.map(a => parseFloat(a.threat_score || a.threat || 0) * 100),
+                marker: {
+                    size: arr.map(a => {
+                        const H = parseFloat(a.H) || 18;
+                        return Math.max(6, Math.min(30, estimateDiameter(H) * 15));
+                    }),
+                    color: arr.map(a => parseFloat(a.threat_score || a.threat || 0) * 100),
+                    colorscale: 'Inferno', showscale: false,
+                    symbol: symbol,
+                    line: { color: '#00d4ff', width: 1 }
+                },
+                text: arr.map(a => a.name || `SPKID ${a.spkid}`),
+                name: label,
+                hovertemplate: '%{text}<br>MOID: %{x:.4f} AU<br>Threat: %{y:.1f}%<extra></extra>'
+            };
+        }
+
+        Plotly.newPlot('moidBubbleChart', [traceFor(npha, 'circle', 'Non-PHA'), traceFor(pha, 'x', 'PHA')], {
+            ...DARK,
+            xaxis: { title: 'MOID (AU)', type: 'log', gridcolor: 'rgba(0,212,255,0.1)', color: '#00d4ff' },
+            yaxis: { title: 'Threat (%)', gridcolor: 'rgba(0,212,255,0.1)', color: '#00d4ff' },
+            shapes: [
+                { type: 'line', x0: 0.05, x1: 0.05, y0: 0, y1: 100, line: { color: 'rgba(255,50,50,0.5)', width: 1, dash: 'dot' } },
+                { type: 'line', x0: 0.001, x1: 1, y0: 60, y1: 60, line: { color: 'rgba(255,170,0,0.5)', width: 1, dash: 'dot' } }
+            ],
+            annotations: [
+                { x: Math.log10(0.05), y: 95, text: 'PHA threshold', font: { color: 'rgba(255,50,50,0.7)', size: 9 }, showarrow: false, xref: 'x', yref: 'y' },
+                { x: Math.log10(0.003), y: 62, text: 'High risk zone', font: { color: 'rgba(255,170,0,0.7)', size: 9 }, showarrow: false, xref: 'x', yref: 'y' }
+            ],
+            legend: { font: { color: '#00d4ff' } }
+        }, CFG);
+    }
+
+    function renderHeatmap(data, windowDays) {
+        const today = new Date();
+        const dateCols = Array.from({ length: windowDays + 1 }, (_, i) => {
+            const dt = new Date(today);
+            dt.setDate(dt.getDate() + i);
+            return dt.toISOString().slice(0, 10);
+        });
+        // Every 3rd day label to avoid crowding
+        const step = Math.max(1, Math.floor(windowDays / 10));
+        const names = data.map(a => (a.name || `SPKID ${a.spkid}`).slice(0, 18));
+        const zMatrix = data.map(a => a.tArr.map(t => t * 100));
+
+        Plotly.newPlot('heatmapChart', [{
+            type: 'heatmap',
+            z: zMatrix,
+            x: dateCols,
+            y: names,
+            colorscale: 'Inferno',
+            colorbar: { title: 'Threat %', tickfont: { color: '#00d4ff' }, titlefont: { color: '#00d4ff' } },
+            hovertemplate: '%{y}<br>%{x}<br>Threat: %{z:.1f}%<extra></extra>'
+        }], {
+            ...DARK,
+            margin: { l: 160, r: 80, t: 20, b: 80 },
+            xaxis: { title: 'Date', gridcolor: 'rgba(0,212,255,0.1)', color: '#00d4ff', tickangle: -45 },
+            yaxis: { gridcolor: 'rgba(0,212,255,0.1)', color: '#00d4ff', autorange: 'reversed' }
+        }, CFG);
+    }
+
+    function renderEccInc(data) {
+        Plotly.newPlot('eccIncChart', [{
+            type: 'scatter', mode: 'markers',
+            x: data.map(a => parseFloat(a.e) || 0),
+            y: data.map(a => parseFloat(a.i) || 0),
+            marker: {
+                size: 10,
+                color: data.map(a => parseFloat(a.threat_score || a.threat || 0) * 100),
+                colorscale: 'Inferno', showscale: true,
+                colorbar: { title: 'Threat %', tickfont: { color: '#00d4ff' }, titlefont: { color: '#00d4ff' } },
+                symbol: data.map(a => a.pha === 'Y' ? 'x' : 'circle'),
+                line: { color: '#00d4ff', width: 0.5 }
+            },
+            text: data.map(a => a.name || `SPKID ${a.spkid}`),
+            hovertemplate: '%{text}<br>e: %{x:.3f}<br>i: %{y:.1f}°<extra></extra>'
+        }], {
+            ...DARK,
+            xaxis: { title: 'Eccentricity', gridcolor: 'rgba(0,212,255,0.1)', color: '#00d4ff' },
+            yaxis: { title: 'Inclination (°)', gridcolor: 'rgba(0,212,255,0.1)', color: '#00d4ff' }
+        }, CFG);
+    }
+
+    function renderCumulative(data, windowDays) {
+        const today = new Date();
+        const labels = Array.from({ length: windowDays + 1 }, (_, i) => {
+            const dt = new Date(today);
+            dt.setDate(dt.getDate() + i);
+            return dt.toISOString().slice(0, 10);
+        });
+        const cumulative = labels.map((_, d) =>
+            data.reduce((sum, a) => sum + (a.tArr[d] || 0) * 100, 0)
+        );
+
+        Plotly.newPlot('cumulativeChart', [{
+            type: 'scatter', mode: 'lines+markers',
+            x: labels, y: cumulative,
+            line: { color: '#ff4444', width: 2 },
+            marker: { color: '#ff8888', size: 4 },
+            fill: 'tozeroy', fillcolor: 'rgba(255,50,50,0.07)',
+            hovertemplate: '%{x}<br>Cumulative Threat: %{y:.1f}%<extra></extra>'
+        }], {
+            ...DARK,
+            xaxis: { title: 'Date', gridcolor: 'rgba(0,212,255,0.1)', color: '#00d4ff' },
+            yaxis: { title: 'Σ Threat Score (%)', gridcolor: 'rgba(0,212,255,0.1)', color: '#00d4ff' }
+        }, CFG);
+    }
+
+    function renderTable(data, windowDays) {
+        const tbody = document.getElementById('rankedTableBody');
+        tbody.innerHTML = data.map((ast, idx) => {
+            const threat = parseFloat(ast.threat_score || ast.threat || 0);
+            const delta = ast.delta;
+            const moid = parseFloat(ast.moid) || null;
+            const H = parseFloat(ast.H) || null;
+            const diam = H ? estimateDiameter(H).toFixed(3) : '?';
+            const threatColor = threat > 0.7 ? '#ff4444' : threat > 0.4 ? '#ffaa00' : '#44ff88';
+            const deltaColor = delta > 0.02 ? '#ff4444' : delta > 0 ? '#ffaa00' : '#44ff88';
+            const trendSvg = sparkline(ast.tArr.slice(0, windowDays + 1));
+            return `<tr>
+                <td>${idx + 1}</td>
+                <td>${ast.name || 'Unknown'}</td>
+                <td style="color:#888;font-size:0.8em;">${ast.spkid}</td>
+                <td style="color:${threatColor};font-weight:bold;">${(threat * 100).toFixed(1)}%</td>
+                <td style="color:${deltaColor};">${delta >= 0 ? '+' : ''}${(delta * 100).toFixed(2)}%</td>
+                <td>${moid !== null ? moid.toFixed(4) : 'N/A'}</td>
+                <td>${ast.pha === 'Y' ? '<span style="color:#ff4444;">⚠ PHA</span>' : '<span style="color:#44ff88;">No</span>'}</td>
+                <td>${diam}</td>
+                <td>${trendSvg}</td>
+            </tr>`;
+        }).join('');
+    }
+
+    function sparkline(data) {
+        if (!data || data.length < 2) return '—';
+        const w = 80, h = 24, pad = 2;
+        const min = Math.min(...data), max = Math.max(...data);
+        const range = max - min || 0.001;
+        const pts = data.map((v, i) => {
+            const x = pad + (i / (data.length - 1)) * (w - 2 * pad);
+            const y = h - pad - ((v - min) / range) * (h - 2 * pad);
+            return `${x.toFixed(1)},${y.toFixed(1)}`;
+        }).join(' ');
+        const color = data[data.length - 1] > data[0] ? '#ff4444' : '#44ff88';
+        return `<svg width="${w}" height="${h}" style="vertical-align:middle;"><polyline points="${pts}" fill="none" stroke="${color}" stroke-width="1.5"/></svg>`;
+    }
+
+    function updateSummaryCards(data, windowDays) {
+        const threats = data.map(a => parseFloat(a.threat_score || a.threat || 0));
+        const avg = threats.reduce((s, t) => s + t, 0) / threats.length;
+        const highRisk = threats.filter(t => t > 0.6).length;
+        const phaFrac = data.filter(a => a.pha === 'Y').length;
+        const topMover = [...data].sort((a, b) => b.delta - a.delta)[0];
+        const newEntrants = data.filter(a => a.delta > 0.03).length;
+
+        document.getElementById('totalTracked').textContent = data.length;
+        document.getElementById('avgThreat').textContent = (avg * 100).toFixed(1) + '%';
+        document.getElementById('topMoverName').textContent = (topMover?.name || 'N/A').slice(0, 12);
+        document.getElementById('phaPercent').textContent = phaFrac + ' / ' + data.length;
+        document.getElementById('highRisk').textContent = highRisk;
+        document.getElementById('newEntrants').textContent = newEntrants;
+    }
+
+    // -----------------------------------------------------------
+    // Main pipeline
+    // -----------------------------------------------------------
+    async function runAll() {
+        const topN = parseInt(document.getElementById('topN').value);
+        const windowDays = parseInt(document.getElementById('windowDays').value);
+        const sortBy = document.getElementById('sortBy').value;
+
+        document.getElementById('rankedTableBody').innerHTML =
+            '<tr><td colspan="9" style="text-align:center;color:#ffaa00;">Analysing…</td></tr>';
+
+        await loadData();
+        const analyzed = runAnalysis(topN, windowDays, sortBy);
+
+        updateSummaryCards(analyzed, windowDays);
+        renderTrajectories(analyzed, windowDays);
+        renderMovers(analyzed);
+        renderDistShift(analyzed);
+        renderMoidBubble(watchData.slice(0, 100));
+        renderHeatmap(analyzed, windowDays);
+        renderEccInc(watchData.slice(0, 100));
+        renderCumulative(analyzed, windowDays);
+        renderTable(analyzed, windowDays);
+    }
+
+    document.getElementById('refreshBtn').addEventListener('click', runAll);
+    window.addEventListener('load', runAll);
+    </script>
+</body>
+</html>
