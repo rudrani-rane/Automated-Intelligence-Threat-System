@@ -67,7 +67,8 @@ async function loadAnalyticsData() {
 
 function updateStatCards(asteroids, stats) {
     document.getElementById('totalAsteroids').textContent = asteroids.length.toLocaleString();
-    document.getElementById('phaCount').textContent = stats.pha_count.toLocaleString();
+    const pha = stats.pha_count || stats.potentially_hazardous_count || 0;
+    document.getElementById('phaCount').textContent = pha.toLocaleString();
     
     const highThreat = asteroids.filter(a => a.threat > 0.7).length;
     const mediumThreat = asteroids.filter(a => a.threat >= 0.4 && a.threat <= 0.7).length;

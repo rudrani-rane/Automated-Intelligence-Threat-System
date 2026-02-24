@@ -6,6 +6,10 @@
 let asteroidA = null;
 let asteroidB = null;
 let asteroidC = null;
+// Expose to window for inline scripts
+Object.defineProperty(window, 'asteroidA', { get: () => asteroidA });
+Object.defineProperty(window, 'asteroidB', { get: () => asteroidB });
+Object.defineProperty(window, 'asteroidC', { get: () => asteroidC });
 
 // Chart theme
 const chartLayout = {

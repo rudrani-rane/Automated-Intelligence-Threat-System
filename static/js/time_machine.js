@@ -361,5 +361,124 @@ window.addEventListener('resize', () => {
     renderer.setSize(window.innerWidth, window.innerHeight);
 });
 
+// ============================================
+// ASTEROID SEARCH & TRACKING
+// ============================================
+
+let trackedAsteroidId = null;
+let trackedAsteroidMarker = null;
+let allAsteroidsCache = [];
+
+// Load all asteroids for search
+fetch('/api/asteroids')
+    .then(res => res.json())
+    .then(data => {
+        allAsteroidsCache = data.map(ast => ({
+            spkid: ast.spkid,
+            name: ast.name || `Asteroid ${ast.spkid}`,
+            threat: ast.threat || 0
+        }));
+    })
+    .catch(err => console.error('Error loading asteroid list:', err));
+
+function searchAsteroid(event) {
+    const query = event.target.value.trim().toLowerCase();
+    const resultsDiv = document.getElementById('searchResults');
+    
+    if (query.length < 2) {
+        resultsDiv.style.display = 'none';
+        return;
+    }
+    
+    const matches = allAsteroidsCache
+        .filter(ast => 
+            ast.name.toLowerCase().includes(query) || 
+            ast.spkid.toString().includes(query)
+        )
+        .slice(0, 10);
+    
+    if (matches.length === 0) {
+        resultsDiv.innerHTML = '<div style="padding: 8px; color: rgba(255,255,255,0.5);">No matches found</div>';
+        resultsDiv.style.display = 'block';
+        return;
+    }
+    
+    resultsDiv.innerHTML = matches.map(ast => `
+        <div onclick="selectAsteroid('${ast.spkid}', '${ast.name}')" 
+             style="padding: 8px; cursor: pointer; border-bottom: 1px solid rgba(255,255,255,0.1); transition: background 0.2s;"
+             onmouseover="this.style.background='rgba(0,191,255,0.2)'" 
+             onmouseout="this.style.background='transparent'">
+            <div style="font-weight: 600; font-size: 0.875rem;">${ast.name}</div>
+            <div style="font-size: 0.75rem; color: rgba(255,255,255,0.6);">SPKID: ${ast.spkid} | Threat: ${(ast.threat * 100).toFixed(1)}%</div>
+        </div>
+    `).join('');
+    
+    resultsDiv.style.display = 'block';
+}
+
+function selectAsteroid(spkid, name) {
+    trackedAsteroidId = spkid;
+    
+    document.getElementById('searchResults').style.display = 'none';
+    document.getElementById('asteroidSearch').value = '';
+    document.getElementById('selectedAsteroid').style.display = 'block';
+    document.getElementById('trackedName').textContent = name;
+    
+    // Highlight the asteroid
+    highlightTrackedAsteroid();
+}
+
+function clearTracking() {
+    trackedAsteroidId = null;
+    
+    document.getElementById('selectedAsteroid').style.display = 'none';
+    
+    if (trackedAsteroidMarker) {
+        scene.remove(trackedAsteroidMarker);
+        trackedAsteroidMarker.geometry.dispose();
+        trackedAsteroidMarker.material.dispose();
+        trackedAsteroidMarker = null;
+    }
+}
+
+function highlightTrackedAsteroid() {
+    // Remove previous marker
+    if (trackedAsteroidMarker) {
+        scene.remove(trackedAsteroidMarker);
+        trackedAsteroidMarker.geometry.dispose();
+        trackedAsteroidMarker.material.dispose();
+    }
+    
+    // Find asteroid in current data
+    const asteroid = asteroidData.asteroids?.find(ast => ast.spkid == trackedAsteroidId);
+    if (!asteroid) {
+        console.log('Tracked asteroid not in current time range');
+        return;
+    }
+    
+    // Create marker ring
+    const ringGeometry = new THREE.TorusGeometry(0.3, 0.05, 16, 32);
+    const ringMaterial = new THREE.MeshBasicMaterial({
+        color: 0x00ffff,
+        emissive: 0x00ffff,
+        transparent: true,
+        opacity: 0.8
+    });
+    trackedAsteroidMarker = new THREE.Mesh(ringGeometry, ringMaterial);
+    trackedAsteroidMarker.position.set(asteroid.x * 5, asteroid.z * 5, asteroid.y * 5);
+    trackedAsteroidMarker.rotation.x = Math.PI / 2;
+    scene.add(trackedAsteroidMarker);
+    
+    // Animate marker
+    function animateMarker() {
+        if (trackedAsteroidMarker) {
+            trackedAsteroidMarker.rotation.z += 0.02;
+            trackedAsteroidMarker.scale.setScalar(1 + Math.sin(Date.now() * 0.003) * 0.2);
+        }
+    }
+    setInterval(animateMarker, 16);
+}
+
 // Initial load
 loadAsteroidPositions(0);
+

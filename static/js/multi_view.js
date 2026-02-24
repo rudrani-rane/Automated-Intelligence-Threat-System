@@ -97,9 +97,24 @@ function initOrbitView() {
     const sun = new THREE.Mesh(sunGeometry, sunMaterial);
     scene.add(sun);
     
+    // Sun glow effect
+    const sunGlowGeometry = new THREE.SphereGeometry(1.0, 32, 32);
+    const sunGlowMaterial = new THREE.MeshBasicMaterial({
+        color: 0xffd700,
+        transparent: true,
+        opacity: 0.3,
+        side: THREE.BackSide
+    });
+    const sunGlow = new THREE.Mesh(sunGlowGeometry, sunGlowMaterial);
+    scene.add(sunGlow);
+    
     // Earth
     const earthGeometry = new THREE.SphereGeometry(0.3, 32, 32);
-    const earthMaterial = new THREE.MeshPhongMaterial({ color: 0x2233ff });
+    const earthMaterial = new THREE.MeshPhongMaterial({ 
+        color: 0x2233ff,
+        emissive: 0x112244,
+        shininess: 25
+    });
     const earth = new THREE.Mesh(earthGeometry, earthMaterial);
     earth.position.set(1, 0, 0);
     scene.add(earth);
@@ -493,3 +508,19 @@ window.addEventListener('resize', () => {
 
 initOrbitView();
 setLayout('quad');
+
+// Auto-load a sample asteroid for better UX
+setTimeout(() => {
+    // Load a well-known asteroid (433 Eros) as example
+    loadAsteroid('20000433').catch(() => {
+        // Fallback: try loading any asteroid from search
+        fetch('/api/search?q=eros')
+            .then(res => res.json())
+            .then(results => {
+                if (results && results.length > 0) {
+                    loadAsteroid(results[0].spkid);
+                }
+            })
+            .catch(err => console.error('Error auto-loading asteroid:', err));
+    });
+}, 500);

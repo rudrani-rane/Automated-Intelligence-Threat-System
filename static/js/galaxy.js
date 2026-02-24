@@ -200,16 +200,19 @@ fetch("/api/galaxy")
     geometry.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
     
     const material = new THREE.PointsMaterial({
-        size: 0.15,  // Increased from 0.1 for better visibility
+        size: 0.4,  // Much larger for better visibility
         vertexColors: true,
         transparent: true,
-        opacity: 0.9,  // Increased from 0.85
+        opacity: 1.0,  // Full opacity
         sizeAttenuation: true,
         blending: THREE.AdditiveBlending
     });
     
     asteroidCloud = new THREE.Points(geometry, material);
     scene.add(asteroidCloud);
+    
+    // Update live statistics
+    document.getElementById('totalCount').textContent = count.toLocaleString();
     
     console.log(`✓ Loaded ${count} real NASA asteroids from JPL SBDB`);
     console.log(`  Each point represents one asteroid with real orbital data`);
@@ -258,15 +261,18 @@ function updateLiveAsteroids(data) {
             geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
             
             const material = new THREE.PointsMaterial({
-                size: 0.2,
+                size: 0.5,  // Larger for live updates
                 vertexColors: true,
                 transparent: true,
-                opacity: 0.9,
+                opacity: 1.0,
                 sizeAttenuation: true
             });
             
             liveAsteroids = new THREE.Points(geometry, material);
             scene.add(liveAsteroids);
+            
+            // Update live count
+            document.getElementById('liveCount').textContent = liveAsteroidData.length;
             
             console.log(`✓ Live update: ${liveAsteroidData.length} new asteroids from WebSocket`);
         }
@@ -300,7 +306,7 @@ window.addEventListener('ws_threat_update', (event) => {
 // ============================================
 
 const raycaster = new THREE.Raycaster();
-raycaster.params.Points.threshold = 0.3;
+raycaster.params.Points.threshold = 0.8;  // Larger threshold for easier hover detection
 const mouse = new THREE.Vector2();
 
 let tooltip = null;
