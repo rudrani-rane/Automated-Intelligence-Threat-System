@@ -11,10 +11,7 @@ ATIS is a research-grade planetary defense intelligence platform that ingests re
 
 | Page | URL |
 |---|---|
-| Mission Control | `http://localhost:8000/` |
-| 3D Galaxy View | `http://localhost:8000/galaxy` |
-| Threat Watchlist | `http://localhost:8000/watchlist` |
-| ML Dashboard | `http://localhost:8000/ml-dashboard` |
+| Mission Control | `https://rudrani-rane-atis.hf.space/` |
 
 ---
 
