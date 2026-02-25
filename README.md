@@ -1,5 +1,5 @@
 
-# 🛰️ ATIS — Automated Threat Intelligence System
+# 🛰️ ATIS:  Automated Threat Intelligence System
 
 **Planetary Defense Mission Control · Near-Earth Object Monitoring · v1.0**
 
@@ -37,7 +37,7 @@ ATIS is a research-grade planetary defense intelligence platform that ingests re
 |---|---|
 | **Home** | Mission overview with live dynamic stats from `/api/stats` — total objects, critical count, PHAs, low-risk count |
 | **Galaxy** | Three.js WebGL 3D orbital visualization of all 12,054 NEOs color-coded by threat level |
-| **Radar** | MOID vs. threat scatter plot — Earth proximity analysis |
+| **Radar** | MOID vs. threat scatter plot - Earth proximity analysis |
 | **Watchlist** | Ranked table of top 50 threat asteroids with sortable columns and JPL links |
 | **Trajectory** | AI-powered orbital path forecast for any asteroid using Kepler propagation |
 | **Analytics** | System statistics, model performance metrics, and distribution charts |
@@ -193,14 +193,14 @@ The following features are planned for the next major release and are **not yet 
 | Feature | Description |
 |---|---|
 | **Timeline (Time Machine)** | 3D time-based orbital propagation with ±10-year slider, asteroid tracking, and historical close-approach playback |
-| **Multi-View** | Four synchronized panels: orbit path, close approaches, impact assessment, radar — currently placeholder |
+| **Multi-View** | Four synchronized panels: orbit path, close approaches, impact assessment, radar - currently placeholder |
 | **Compare Tab** | Full side-by-side asteroid parameter comparison with radar charts and exportable diff |
 | **Trends Tab** | Threat score trend analysis with time series forecasting, fully furnished with live data |
 | **N-Body Simulation** | Running live gravitational simulation with real planetary ephemerides (currently static Velocity Verlet demo) |
 | **Better Alert System** | Push notifications, user-configurable thresholds, email/webhook delivery, alert escalation rules |
 
 ### Planned Improvements
-- **Proper location-based galaxy view** — real Keplerian orbital positions at J2000 epoch instead of z-score approximations
+- **Proper location-based galaxy view** - real Keplerian orbital positions at J2000 epoch instead of z-score approximations
 - Automated nightly sync with full JPL SBDB catalog
 - MPC (Minor Planet Center) observation data for trajectory refinement
 - Temporal GNN — model orbital evolution over time
@@ -215,4 +215,4 @@ The following features are planned for the next major release and are **not yet 
 ---
 
 
-Data sourced from NASA/JPL — see [JPL SBDB](https://ssd.jpl.nasa.gov/tools/sbdb_query.html) for data terms.
+Data sourced from NASA/JPL -  see [JPL SBDB](https://ssd.jpl.nasa.gov/tools/sbdb_query.html) for data terms.
